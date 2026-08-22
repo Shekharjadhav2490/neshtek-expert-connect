@@ -11,7 +11,7 @@ import java.util.Locale;
 
 @Service
 public class ExpertService {
-    private static final int MIN_EXPERTISE_WORDS = 1000;
+    private static final int MAX_EXPERTISE_WORDS = 1000;
     private final ExpertRepository repository;
 
     public ExpertService(ExpertRepository repository) { this.repository = repository; }
@@ -23,8 +23,8 @@ public class ExpertService {
         if (repository.existsByMobileNumber(request.mobileNumber().trim())) throw new IllegalArgumentException("An expert with this mobile number already exists");
 
         int wordCount = countWords(request.technicalExpertise());
-        if (wordCount < MIN_EXPERTISE_WORDS) {
-            throw new IllegalArgumentException("Technical expertise must contain at least 1000 words. Current count: " + wordCount);
+        if (wordCount > MAX_EXPERTISE_WORDS) {
+            throw new IllegalArgumentException("Technical expertise must not exceed 1000 words. Current count: " + wordCount);
         }
 
         Expert expert = new Expert();
