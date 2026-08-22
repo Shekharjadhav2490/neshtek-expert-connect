@@ -25,10 +25,10 @@ public class ExpertAvailability {
     @Column(name = "TIMEZONE", length = 100)
     private String timezone;
 
-    @Column(name = "WEEKDAY_AVAILABLE", length = 1)
+    @Column(name = "WEEKDAY_AVAILABLE", columnDefinition = "CHAR(1)")
     private String weekdayAvailable = "Y";
 
-    @Column(name = "WEEKEND_AVAILABLE", length = 1)
+    @Column(name = "WEEKEND_AVAILABLE", columnDefinition = "CHAR(1)")
     private String weekendAvailable = "N";
 
     public Long getExpertId() { return expertId; }
