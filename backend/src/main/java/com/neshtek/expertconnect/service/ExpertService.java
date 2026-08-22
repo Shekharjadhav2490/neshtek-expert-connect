@@ -4,6 +4,10 @@ import com.neshtek.expertconnect.dto.*;
 import com.neshtek.expertconnect.entity.*;
 import com.neshtek.expertconnect.exception.ResourceNotFoundException;
 import com.neshtek.expertconnect.repository.ExpertRepository;
+import com.neshtek.expertconnect.repository.ExpertSpecifications;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +88,16 @@ public class ExpertService {
     @Transactional(readOnly = true)
     public ExpertResponse get(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Expert not found: " + id)));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ExpertResponse> search(String skill, String status, String city, Pageable pageable) {
+        Specification<Expert> specification = Specification.allOf(
+                ExpertSpecifications.hasSkill(skill),
+                ExpertSpecifications.hasStatus(status),
+                ExpertSpecifications.hasCity(city)
+        );
+        return repository.findAll(specification, pageable).map(this::toResponse);
     }
 
     private ExpertResponse toResponse(Expert expert) {
