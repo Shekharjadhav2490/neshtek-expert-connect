@@ -5,6 +5,7 @@ public enum ExpertStatus {
     UNDER_REVIEW,
     VERIFICATION,
     APPROVED,
+    ACTIVE,
     REJECTED,
     SUSPENDED
 }
