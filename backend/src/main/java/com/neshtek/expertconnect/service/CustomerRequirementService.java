@@ -68,6 +68,7 @@ public class CustomerRequirementService {
                 CustomerRequirementSkill skill=new CustomerRequirementSkill();
                 skill.setSkillName(s.skillName().trim());
                 skill.setPriorityOrder(s.priorityOrder()==null ? order : s.priorityOrder());
+                skill.setMandatory(s.mandatory() == null || s.mandatory());
                 entity.addSkill(skill);
                 order++;
             }
@@ -83,7 +84,7 @@ public class CustomerRequirementService {
     private CustomerRequirementResponse toResponse(CustomerRequirement e){
         var skills=new ArrayList<CustomerRequirementResponse.SkillResponse>();
         for(CustomerRequirementSkill s:e.getSkills()) {
-            skills.add(new CustomerRequirementResponse.SkillResponse(s.getId(),s.getSkillName(),s.getPriorityOrder()));
+            skills.add(new CustomerRequirementResponse.SkillResponse(s.getId(),s.getSkillName(),s.getPriorityOrder(),s.isMandatory()));
         }
         return new CustomerRequirementResponse(e.getId(),e.getCompanyName(),e.getContactName(),e.getEmail(),e.getPhone(),e.getCountry(),e.getCity(),e.getTitle(),e.getDescription(),e.getTechnology(),e.getRequiredExperienceYears(),e.getEstimatedHours(),e.getPreferredStartDate(),e.getPriority().name(),e.getBudget(),e.getCurrencyCode(),e.getStatus().name(),e.getCreatedAt(),e.getUpdatedAt(),skills);
     }
