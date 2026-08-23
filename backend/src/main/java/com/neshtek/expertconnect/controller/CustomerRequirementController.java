@@ -31,4 +31,10 @@ public class CustomerRequirementController {
         int safeSize=Math.min(Math.max(size,1),100);
         return service.list(PageRequest.of(Math.max(page,0),safeSize,Sort.by(Sort.Direction.DESC,"createdAt")));
     }
+
+    @PutMapping("/{id}")
+    public CustomerRequirementResponse update(@PathVariable Long id,
+                                              @Valid @RequestBody CustomerRequirementRequest request){
+        return service.update(id, request);
+    }
 }
