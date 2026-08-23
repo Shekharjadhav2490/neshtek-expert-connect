@@ -24,5 +24,9 @@ public record CustomerRequirementRequest(
     @Pattern(regexp="[A-Za-z]{3}") String currencyCode,
     @Valid @Size(max=20) List<SkillRequest> skills
 ) {
-    public record SkillRequest(@NotBlank @Size(max=150) String skillName, @Min(1) @Max(999) Integer priorityOrder) {}
+    public record SkillRequest(
+            @NotBlank @Size(max=150) String skillName,
+            @Min(1) @Max(999) Integer priorityOrder,
+            Boolean mandatory
+    ) {}
 }
