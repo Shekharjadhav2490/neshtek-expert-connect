@@ -12,6 +12,11 @@ import java.util.List;
 public class CustomerRequirement {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "REQUIREMENT_ID") private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CUSTOMER_ID", foreignKey = @ForeignKey(name = "FK_REQUIREMENT_CUSTOMER"))
+    private Customer customer;
+
     @Column(name = "COMPANY_NAME", nullable = false, length = 200) private String companyName;
     @Column(name = "CONTACT_NAME", nullable = false, length = 150) private String contactName;
     @Column(name = "EMAIL", nullable = false, length = 320) private String email;
@@ -31,10 +36,13 @@ public class CustomerRequirement {
     @Column(name = "CREATED_AT", nullable = false) private LocalDateTime createdAt;
     @Column(name = "UPDATED_AT", nullable = false) private LocalDateTime updatedAt;
     @OneToMany(mappedBy = "requirement", cascade = CascadeType.ALL, orphanRemoval = true) @OrderBy("priorityOrder ASC") private List<CustomerRequirementSkill> skills = new ArrayList<>();
+
     @PrePersist void prePersist(){LocalDateTime now=LocalDateTime.now();createdAt=now;updatedAt=now;}
     @PreUpdate void preUpdate(){updatedAt=LocalDateTime.now();}
     public void addSkill(CustomerRequirementSkill skill){skills.add(skill);skill.setRequirement(this);}
-    public Long getId(){return id;} public String getCompanyName(){return companyName;} public void setCompanyName(String v){companyName=v;}
+    public Long getId(){return id;}
+    public Customer getCustomer(){return customer;} public void setCustomer(Customer v){customer=v;}
+    public String getCompanyName(){return companyName;} public void setCompanyName(String v){companyName=v;}
     public String getContactName(){return contactName;} public void setContactName(String v){contactName=v;} public String getEmail(){return email;} public void setEmail(String v){email=v;}
     public String getPhone(){return phone;} public void setPhone(String v){phone=v;} public String getCountry(){return country;} public void setCountry(String v){country=v;}
     public String getCity(){return city;} public void setCity(String v){city=v;} public String getTitle(){return title;} public void setTitle(String v){title=v;}

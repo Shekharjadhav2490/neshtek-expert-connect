@@ -2,12 +2,14 @@ package com.neshtek.expertconnect.service;
 
 import com.neshtek.expertconnect.dto.CustomerRequirementRequest;
 import com.neshtek.expertconnect.dto.CustomerRequirementResponse;
+import com.neshtek.expertconnect.entity.Customer;
 import com.neshtek.expertconnect.entity.CustomerRequirement;
 import com.neshtek.expertconnect.entity.CustomerRequirementSkill;
 import com.neshtek.expertconnect.entity.CustomerRequirementStatus;
 import com.neshtek.expertconnect.entity.RequirementPriority;
+import com.neshtek.expertconnect.exception.ResourceNotFoundException;
+import com.neshtek.expertconnect.repository.CustomerRepository;
 import com.neshtek.expertconnect.repository.CustomerRequirementRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,74 +20,21 @@ import java.util.Locale;
 @Service
 public class CustomerRequirementService {
     private final CustomerRequirementRepository repository;
-    public CustomerRequirementService(CustomerRequirementRepository repository){this.repository=repository;}
-
-    @Transactional
-    public CustomerRequirementResponse create(CustomerRequirementRequest request){
-        CustomerRequirement entity = new CustomerRequirement();
-        applyRequest(entity, request);
-        entity.setStatus(CustomerRequirementStatus.SUBMITTED);
-        return toResponse(repository.save(entity));
-    }
-
-    @Transactional
-    public CustomerRequirementResponse get(Long id){
-        return toResponse(repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Customer requirement not found: "+id)));
-    }
-
-    @Transactional
-    public Page<CustomerRequirementResponse> list(Pageable pageable){return repository.findAll(pageable).map(this::toResponse);}
-
-    @Transactional
-    public CustomerRequirementResponse update(Long id, CustomerRequirementRequest request){
-        CustomerRequirement entity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Customer requirement not found: "+id));
-        applyRequest(entity, request);
-        return toResponse(repository.save(entity));
-    }
-
+    private final CustomerRepository customerRepository;
+    public CustomerRequirementService(CustomerRequirementRepository repository, CustomerRepository customerRepository){this.repository=repository;this.customerRepository=customerRepository;}
+    @Transactional public CustomerRequirementResponse create(CustomerRequirementRequest request){CustomerRequirement entity=new CustomerRequirement();applyRequest(entity,request);entity.setStatus(CustomerRequirementStatus.SUBMITTED);return toResponse(repository.save(entity));}
+    @Transactional public CustomerRequirementResponse get(Long id){return toResponse(find(id));}
+    @Transactional public Page<CustomerRequirementResponse> list(Pageable pageable){return repository.findAll(pageable).map(this::toResponse);}
+    @Transactional public Page<CustomerRequirementResponse> listByCustomer(Long customerId, Pageable pageable){ensureCustomer(customerId);return repository.findByCustomerId(customerId,pageable).map(this::toResponse);}
+    @Transactional public CustomerRequirementResponse update(Long id, CustomerRequirementRequest request){CustomerRequirement entity=find(id);applyRequest(entity,request);return toResponse(repository.save(entity));}
+    private CustomerRequirement find(Long id){return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Customer requirement not found: "+id));}
+    private Customer ensureCustomer(Long id){return customerRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Customer not found: "+id));}
     private void applyRequest(CustomerRequirement entity, CustomerRequirementRequest request){
-        entity.setCompanyName(request.companyName().trim());
-        entity.setContactName(request.contactName().trim());
-        entity.setEmail(request.email().trim().toLowerCase(Locale.ROOT));
-        entity.setPhone(request.phone());
-        entity.setCountry(request.country());
-        entity.setCity(request.city());
-        entity.setTitle(request.title().trim());
-        entity.setDescription(request.description().trim());
-        entity.setTechnology(request.technology());
-        entity.setRequiredExperienceYears(request.requiredExperienceYears());
-        entity.setEstimatedHours(request.estimatedHours());
-        entity.setPreferredStartDate(request.preferredStartDate());
-        entity.setPriority(parsePriority(request.priority()));
-        entity.setBudget(request.budget());
-        entity.setCurrencyCode(request.currencyCode()==null ? "USD" : request.currencyCode().toUpperCase(Locale.ROOT));
-
-        entity.getSkills().clear();
-        if(request.skills()!=null){
-            int order=1;
-            for(CustomerRequirementRequest.SkillRequest s:request.skills()){
-                CustomerRequirementSkill skill=new CustomerRequirementSkill();
-                skill.setSkillName(s.skillName().trim());
-                skill.setPriorityOrder(s.priorityOrder()==null ? order : s.priorityOrder());
-                skill.setMandatory(s.mandatory() == null || s.mandatory());
-                entity.addSkill(skill);
-                order++;
-            }
-        }
+        if(request.customerId()!=null) entity.setCustomer(ensureCustomer(request.customerId()));
+        entity.setCompanyName(request.companyName().trim());entity.setContactName(request.contactName().trim());entity.setEmail(request.email().trim().toLowerCase(Locale.ROOT));
+        entity.setPhone(request.phone());entity.setCountry(request.country());entity.setCity(request.city());entity.setTitle(request.title().trim());entity.setDescription(request.description().trim());entity.setTechnology(request.technology());entity.setRequiredExperienceYears(request.requiredExperienceYears());entity.setEstimatedHours(request.estimatedHours());entity.setPreferredStartDate(request.preferredStartDate());entity.setPriority(parsePriority(request.priority()));entity.setBudget(request.budget());entity.setCurrencyCode(request.currencyCode()==null?"USD":request.currencyCode().toUpperCase(Locale.ROOT));
+        entity.getSkills().clear();if(request.skills()!=null){int order=1;for(CustomerRequirementRequest.SkillRequest s:request.skills()){CustomerRequirementSkill skill=new CustomerRequirementSkill();skill.setSkillName(s.skillName().trim());skill.setPriorityOrder(s.priorityOrder()==null?order:s.priorityOrder());skill.setMandatory(s.mandatory()==null||s.mandatory());entity.addSkill(skill);order++;}}
     }
-
-    private RequirementPriority parsePriority(String value){
-        if(value==null || value.isBlank()) return RequirementPriority.MEDIUM;
-        try{return RequirementPriority.valueOf(value.trim().toUpperCase(Locale.ROOT));}
-        catch(IllegalArgumentException ex){throw new IllegalArgumentException("Priority must be LOW, MEDIUM, HIGH or URGENT");}
-    }
-
-    private CustomerRequirementResponse toResponse(CustomerRequirement e){
-        var skills=new ArrayList<CustomerRequirementResponse.SkillResponse>();
-        for(CustomerRequirementSkill s:e.getSkills()) {
-            skills.add(new CustomerRequirementResponse.SkillResponse(s.getId(),s.getSkillName(),s.getPriorityOrder(),s.isMandatory()));
-        }
-        return new CustomerRequirementResponse(e.getId(),e.getCompanyName(),e.getContactName(),e.getEmail(),e.getPhone(),e.getCountry(),e.getCity(),e.getTitle(),e.getDescription(),e.getTechnology(),e.getRequiredExperienceYears(),e.getEstimatedHours(),e.getPreferredStartDate(),e.getPriority().name(),e.getBudget(),e.getCurrencyCode(),e.getStatus().name(),e.getCreatedAt(),e.getUpdatedAt(),skills);
-    }
+    private RequirementPriority parsePriority(String value){if(value==null||value.isBlank())return RequirementPriority.MEDIUM;try{return RequirementPriority.valueOf(value.trim().toUpperCase(Locale.ROOT));}catch(IllegalArgumentException ex){throw new IllegalArgumentException("Priority must be LOW, MEDIUM, HIGH or URGENT");}}
+    private CustomerRequirementResponse toResponse(CustomerRequirement e){var skills=new ArrayList<CustomerRequirementResponse.SkillResponse>();for(CustomerRequirementSkill s:e.getSkills())skills.add(new CustomerRequirementResponse.SkillResponse(s.getId(),s.getSkillName(),s.getPriorityOrder(),s.isMandatory()));return new CustomerRequirementResponse(e.getId(),e.getCustomer()==null?null:e.getCustomer().getId(),e.getCompanyName(),e.getContactName(),e.getEmail(),e.getPhone(),e.getCountry(),e.getCity(),e.getTitle(),e.getDescription(),e.getTechnology(),e.getRequiredExperienceYears(),e.getEstimatedHours(),e.getPreferredStartDate(),e.getPriority().name(),e.getBudget(),e.getCurrencyCode(),e.getStatus().name(),e.getCreatedAt(),e.getUpdatedAt(),skills);}
 }
