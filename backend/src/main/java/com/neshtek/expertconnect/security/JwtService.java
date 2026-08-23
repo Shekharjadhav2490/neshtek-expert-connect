@@ -1,0 +1,26 @@
+package com.neshtek.expertconnect.security;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
+
+public class JwtService {
+    private final SecretKey key;
+    private final long expirationSeconds;
+
+    public JwtService(String secret, long expirationSeconds) {
+        if (secret == null || secret.length() < 32) throw new IllegalArgumentException("JWT secret must contain at least 32 characters");
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expirationSeconds = expirationSeconds;
+    }
+
+    public String generateToken(Long userId, String email, String role) {
+        Instant now = Instant.now();
+        return Jwts.builder().subject(String.valueOf(userId)).claim("email", email).claim("role", role)
+                .issuedAt(Date.from(now)).expiration(Date.from(now.plusSeconds(expirationSeconds)))
+                .signWith(key).compact();
+    }
+}
