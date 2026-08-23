@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
@@ -62,8 +63,13 @@ public class ExpertService {
     public ExpertResponse get(Long id) { return toResponse(find(id)); }
 
     @Transactional(readOnly = true)
-    public Page<ExpertResponse> search(String skill, String status, String city, Pageable pageable) {
-        Specification<Expert> specification = Specification.allOf(ExpertSpecifications.hasSkill(skill), ExpertSpecifications.hasStatus(status), ExpertSpecifications.hasCity(city));
+    public Page<ExpertResponse> search(String skill, String status, String city, BigDecimal minExperience, Boolean available, Pageable pageable) {
+        Specification<Expert> specification = Specification.allOf(
+                ExpertSpecifications.hasSkill(skill),
+                ExpertSpecifications.hasStatus(status),
+                ExpertSpecifications.hasCity(city),
+                ExpertSpecifications.hasMinimumExperience(minExperience),
+                ExpertSpecifications.hasAvailability(available));
         return repository.findAll(specification, pageable).map(this::toResponse);
     }
 
