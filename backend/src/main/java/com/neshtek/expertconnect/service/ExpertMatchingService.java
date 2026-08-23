@@ -14,13 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class ExpertMatchingService {
     private static final double SKILL_WEIGHT = 50.0;
+    private static final double MANDATORY_SKILL_WEIGHT = 40.0;
+    private static final double OPTIONAL_SKILL_WEIGHT = 10.0;
     private static final double EXPERIENCE_WEIGHT = 20.0;
     private static final double AVAILABILITY_WEIGHT = 15.0;
     private static final double TECHNOLOGY_WEIGHT = 15.0;
@@ -39,9 +40,12 @@ public class ExpertMatchingService {
         CustomerRequirement requirement = requirementRepository.findById(requirementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer requirement not found: " + requirementId));
 
-        List<String> requiredSkills = requirement.getSkills().stream()
+        List<CustomerRequirementSkill> requiredSkillEntities = requirement.getSkills().stream()
+                .filter(s -> s.getSkillName() != null && !s.getSkillName().isBlank())
+                .toList();
+
+        List<String> requiredSkills = requiredSkillEntities.stream()
                 .map(CustomerRequirementSkill::getSkillName)
-                .filter(Objects::nonNull)
                 .map(this::normalize)
                 .filter(s -> !s.isBlank())
                 .distinct()
@@ -54,7 +58,7 @@ public class ExpertMatchingService {
         int safeLimit = Math.min(Math.max(limit, 1), 20);
         return expertRepository.findAll().stream()
                 .filter(e -> e.getStatus() == ExpertStatus.ACTIVE)
-                .map(e -> score(requirement, requiredSkills, e))
+                .map(e -> score(requirement, requiredSkillEntities, requiredSkills, e))
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(ExpertMatchResponse::matchScore).reversed()
                         .thenComparing(ExpertMatchResponse::expertId))
@@ -62,7 +66,10 @@ public class ExpertMatchingService {
                 .toList();
     }
 
-    private ExpertMatchResponse score(CustomerRequirement requirement, List<String> requiredSkills, Expert expert) {
+    private ExpertMatchResponse score(CustomerRequirement requirement,
+                                       List<CustomerRequirementSkill> requiredSkillEntities,
+                                       List<String> requiredSkills,
+                                       Expert expert) {
         Set<String> expertSkills = expert.getSkills().stream()
                 .map(ExpertSkill::getSkillName)
                 .filter(Objects::nonNull)
@@ -70,16 +77,42 @@ public class ExpertMatchingService {
                 .collect(Collectors.toSet());
 
         List<String> matchedNames = new ArrayList<>();
-        for (String required : requiredSkills) {
-            for (ExpertSkill skill : expert.getSkills()) {
-                if (skill.getSkillName() != null && normalize(skill.getSkillName()).equals(required)) {
-                    matchedNames.add(skill.getSkillName());
-                    break;
+        List<String> missingMandatory = new ArrayList<>();
+        List<String> missingOptional = new ArrayList<>();
+        int mandatoryRequired = 0;
+        int mandatoryMatched = 0;
+        int optionalRequired = 0;
+        int optionalMatched = 0;
+
+        for (CustomerRequirementSkill requiredSkill : requiredSkillEntities) {
+            String required = normalize(requiredSkill.getSkillName());
+            if (required.isBlank()) continue;
+
+            boolean matched = expertSkills.contains(required);
+            if (requiredSkill.isMandatory()) {
+                mandatoryRequired++;
+                if (matched) {
+                    mandatoryMatched++;
+                } else {
+                    missingMandatory.add(requiredSkill.getSkillName());
+                }
+            } else {
+                optionalRequired++;
+                if (matched) {
+                    optionalMatched++;
+                } else {
+                    missingOptional.add(requiredSkill.getSkillName());
                 }
             }
+
+            if (matched) matchedNames.add(requiredSkill.getSkillName());
         }
 
-        double skillRatio = requiredSkills.isEmpty() ? 0.0 : (double) matchedNames.size() / requiredSkills.size();
+        double mandatoryRatio = mandatoryRequired == 0 ? 1.0 : (double) mandatoryMatched / mandatoryRequired;
+        double optionalRatio = optionalRequired == 0 ? 1.0 : (double) optionalMatched / optionalRequired;
+        double skillScore = (mandatoryRatio * MANDATORY_SKILL_WEIGHT)
+                + (optionalRatio * OPTIONAL_SKILL_WEIGHT);
+
         boolean experienceMatch = requirement.getRequiredExperienceYears() == null
                 || (expert.getTotalExperienceYears() != null
                 && expert.getTotalExperienceYears().compareTo(requirement.getRequiredExperienceYears()) >= 0);
@@ -91,7 +124,7 @@ public class ExpertMatchingService {
         boolean availabilityMatch = availabilityMatches(requirement, expert);
         boolean technologyMatch = technologyMatches(requirement.getTechnology(), expert, expertSkills);
 
-        double score = (skillRatio * SKILL_WEIGHT)
+        double score = skillScore
                 + (experienceRatio * EXPERIENCE_WEIGHT)
                 + (availabilityMatch ? AVAILABILITY_WEIGHT : 0.0)
                 + (technologyMatch ? TECHNOLOGY_WEIGHT : 0.0);
@@ -100,13 +133,44 @@ public class ExpertMatchingService {
 
         BigDecimal hourlyRate = expert.getConsulting() == null ? null : expert.getConsulting().getHourlyRate();
         String currency = expert.getConsulting() == null ? null : expert.getConsulting().getCurrencyCode();
+        BigDecimal roundedScore = BigDecimal.valueOf(score).setScale(2, RoundingMode.HALF_UP);
+        boolean mandatorySatisfied = missingMandatory.isEmpty();
+        String level = matchLevel(roundedScore.doubleValue(), mandatorySatisfied);
+        String recommendation = recommendation(level, mandatorySatisfied, missingMandatory, missingOptional,
+                experienceMatch, availabilityMatch, technologyMatch);
 
         return new ExpertMatchResponse(
                 expert.getId(), expert.getFirstName(), expert.getLastName(), expert.getCity(), expert.getTimezone(),
-                expert.getTotalExperienceYears(), hourlyRate, currency,
-                BigDecimal.valueOf(score).setScale(2, RoundingMode.HALF_UP),
+                expert.getTotalExperienceYears(), hourlyRate, currency, roundedScore,
                 matchedNames.size(), requiredSkills.size(), matchedNames,
-                experienceMatch, availabilityMatch, technologyMatch);
+                mandatoryMatched, mandatoryRequired, optionalMatched, optionalRequired,
+                missingMandatory, missingOptional, mandatorySatisfied,
+                experienceMatch, availabilityMatch, technologyMatch, level, recommendation);
+    }
+
+    private String matchLevel(double score, boolean mandatorySatisfied) {
+        if (!mandatorySatisfied) return score >= 60 ? "PARTIAL_MATCH" : "LOW_MATCH";
+        if (score >= 90) return "EXCELLENT_MATCH";
+        if (score >= 75) return "GOOD_MATCH";
+        if (score >= 60) return "FAIR_MATCH";
+        return "LOW_MATCH";
+    }
+
+    private String recommendation(String level, boolean mandatorySatisfied,
+                                  List<String> missingMandatory, List<String> missingOptional,
+                                  boolean experienceMatch, boolean availabilityMatch, boolean technologyMatch) {
+        if (!mandatorySatisfied) {
+            return "Not all mandatory skills are matched. Missing: " + String.join(", ", missingMandatory) + ".";
+        }
+        List<String> strengths = new ArrayList<>();
+        if (experienceMatch) strengths.add("experience");
+        if (availabilityMatch) strengths.add("availability");
+        if (technologyMatch) strengths.add("technology");
+        if (!missingOptional.isEmpty()) {
+            return "Mandatory skills are satisfied; strong " + String.join(", ", strengths)
+                    + ". Optional skills not matched: " + String.join(", ", missingOptional) + ".";
+        }
+        return "All mandatory and optional skills are matched with " + String.join(", ", strengths) + ".";
     }
 
     private boolean availabilityMatches(CustomerRequirement requirement, Expert expert) {
