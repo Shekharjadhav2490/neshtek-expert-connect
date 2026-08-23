@@ -1,5 +1,6 @@
 package com.neshtek.expertconnect.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
@@ -22,5 +23,9 @@ public class JwtService {
         return Jwts.builder().subject(String.valueOf(userId)).claim("email", email).claim("role", role)
                 .issuedAt(Date.from(now)).expiration(Date.from(now.plusSeconds(expirationSeconds)))
                 .signWith(key).compact();
+    }
+
+    public Claims parse(String token) {
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }
 }
