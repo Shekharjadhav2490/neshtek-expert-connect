@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record CustomerRequirementRequest(
+    Long customerId,
     @NotBlank @Size(max=200) String companyName,
     @NotBlank @Size(max=150) String contactName,
     @NotBlank @Email @Size(max=320) String email,
