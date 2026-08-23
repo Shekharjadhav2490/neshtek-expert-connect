@@ -25,4 +25,12 @@ public class ExpertMatchingController {
             @RequestParam(defaultValue = "5") int limit) {
         return matchingService.findMatches(requirementId, limit);
     }
+
+    @GetMapping("/api/v1/customers/{customerId}/requirements/{requirementId}/matches")
+    public List<ExpertMatchResponse> customerMatches(
+            @PathVariable Long customerId,
+            @PathVariable Long requirementId,
+            @RequestParam(defaultValue = "5") int limit) {
+        return matchingService.findMatchesForCustomer(customerId, requirementId, limit);
+    }
 }
