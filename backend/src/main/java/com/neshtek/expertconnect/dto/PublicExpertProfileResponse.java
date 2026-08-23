@@ -1,5 +1,6 @@
 package com.neshtek.expertconnect.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record PublicExpertProfileResponse(
@@ -9,12 +10,12 @@ public record PublicExpertProfileResponse(
         String city,
         String country,
         String timezone,
-        Integer totalExperienceYears,
+        BigDecimal totalExperienceYears,
         String technicalExpertise,
         List<String> skills,
         String status,
         Boolean available,
-        Integer hoursPerWeek,
+        BigDecimal hoursPerWeek,
         String currencyCode,
-        java.math.BigDecimal hourlyRate
+        BigDecimal hourlyRate
 ) {}
