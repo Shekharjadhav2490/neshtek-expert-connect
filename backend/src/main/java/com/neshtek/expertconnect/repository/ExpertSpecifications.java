@@ -37,6 +37,13 @@ public final class ExpertSpecifications {
         };
     }
 
+    public static Specification<Expert> hasCountry(String country) {
+        return (root, query, cb) -> {
+            if (country == null || country.isBlank()) return null;
+            return cb.equal(cb.lower(root.get("country")), country.trim().toLowerCase());
+        };
+    }
+
     public static Specification<Expert> hasMinimumExperience(BigDecimal minimumExperience) {
         return (root, query, cb) -> {
             if (minimumExperience == null) return null;
@@ -57,6 +64,25 @@ public final class ExpertSpecifications {
                             cb.lessThanOrEqualTo(join.get("availableFrom"), LocalDate.now())
                     )
             );
+        };
+    }
+
+    public static Specification<Expert> hasMaximumHourlyRate(BigDecimal maxHourlyRate) {
+        return (root, query, cb) -> {
+            if (maxHourlyRate == null) return null;
+            var join = root.join("consulting", jakarta.persistence.criteria.JoinType.LEFT);
+            return cb.and(
+                    cb.isNotNull(join.get("hourlyRate")),
+                    cb.lessThanOrEqualTo(join.get("hourlyRate"), maxHourlyRate)
+            );
+        };
+    }
+
+    public static Specification<Expert> hasCurrency(String currency) {
+        return (root, query, cb) -> {
+            if (currency == null || currency.isBlank()) return null;
+            var join = root.join("consulting", jakarta.persistence.criteria.JoinType.LEFT);
+            return cb.equal(cb.upper(join.get("currencyCode")), currency.trim().toUpperCase());
         };
     }
 }
