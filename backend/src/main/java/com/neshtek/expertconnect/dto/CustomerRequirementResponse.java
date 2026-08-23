@@ -11,5 +11,5 @@ public record CustomerRequirementResponse(
     LocalDate preferredStartDate, String priority, BigDecimal budget, String currencyCode, String status,
     LocalDateTime createdAt, LocalDateTime updatedAt, List<SkillResponse> skills
 ) {
-    public record SkillResponse(Long id, String skillName, Integer priorityOrder) {}
+    public record SkillResponse(Long id, String skillName, Integer priorityOrder, boolean mandatory) {}
 }
