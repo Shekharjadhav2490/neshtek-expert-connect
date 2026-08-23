@@ -1,9 +1,11 @@
 package com.neshtek.expertconnect.repository;
 
 import com.neshtek.expertconnect.entity.Expert;
-import com.neshtek.expertconnect.entity.ExpertSkill;
 import com.neshtek.expertconnect.entity.ExpertStatus;
 import org.springframework.data.jpa.domain.Specification;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public final class ExpertSpecifications {
     private ExpertSpecifications() { }
@@ -32,6 +34,29 @@ public final class ExpertSpecifications {
         return (root, query, cb) -> {
             if (city == null || city.isBlank()) return null;
             return cb.equal(cb.lower(root.get("city")), city.trim().toLowerCase());
+        };
+    }
+
+    public static Specification<Expert> hasMinimumExperience(BigDecimal minimumExperience) {
+        return (root, query, cb) -> {
+            if (minimumExperience == null) return null;
+            return cb.greaterThanOrEqualTo(root.get("totalExperienceYears"), minimumExperience);
+        };
+    }
+
+    public static Specification<Expert> hasAvailability(Boolean available) {
+        return (root, query, cb) -> {
+            if (available == null) return null;
+            query.distinct(true);
+            var join = root.join("availability", jakarta.persistence.criteria.JoinType.LEFT);
+            if (!available) return cb.isNull(join.get("expertId"));
+            return cb.and(
+                    cb.isNotNull(join.get("expertId")),
+                    cb.or(
+                            cb.isNull(join.get("availableFrom")),
+                            cb.lessThanOrEqualTo(join.get("availableFrom"), LocalDate.now())
+                    )
+            );
         };
     }
 }
