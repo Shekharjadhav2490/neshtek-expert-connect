@@ -38,7 +38,23 @@ public class ExpertMatchingService {
     public List<ExpertMatchResponse> findMatches(Long requirementId, int limit) {
         CustomerRequirement requirement = requirementRepository.findById(requirementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer requirement not found: " + requirementId));
+        return findMatches(requirement, limit);
+    }
 
+    @Transactional(readOnly = true)
+    public List<ExpertMatchResponse> findMatchesForCustomer(Long customerId, Long requirementId, int limit) {
+        CustomerRequirement requirement = requirementRepository.findById(requirementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer requirement not found: " + requirementId));
+
+        if (requirement.getCustomer() == null || requirement.getCustomer().getId() == null
+                || !requirement.getCustomer().getId().equals(customerId)) {
+            throw new ResourceNotFoundException("Customer requirement not found: " + requirementId);
+        }
+
+        return findMatches(requirement, limit);
+    }
+
+    private List<ExpertMatchResponse> findMatches(CustomerRequirement requirement, int limit) {
         List<CustomerRequirementSkill> requiredSkillEntities = requirement.getSkills().stream()
                 .filter(s -> s.getSkillName() != null && !s.getSkillName().isBlank())
                 .toList();
