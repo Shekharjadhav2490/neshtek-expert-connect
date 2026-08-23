@@ -16,7 +16,16 @@ public record ExpertMatchResponse(
         int matchedSkills,
         int requiredSkills,
         List<String> matchedSkillNames,
+        int mandatorySkillsMatched,
+        int mandatorySkillsRequired,
+        int optionalSkillsMatched,
+        int optionalSkillsRequired,
+        List<String> missingMandatorySkills,
+        List<String> missingOptionalSkills,
+        boolean mandatorySkillsSatisfied,
         boolean experienceMatch,
         boolean availabilityMatch,
-        boolean technologyMatch
+        boolean technologyMatch,
+        String matchLevel,
+        String recommendation
 ) {}
