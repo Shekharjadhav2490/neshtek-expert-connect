@@ -15,5 +15,10 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])],
     loadComponent: () => import('./pages/customer-dashboard.component').then((m) => m.CustomerDashboardComponent)
   },
+  {
+    path: 'expert/dashboard',
+    canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])],
+    loadComponent: () => import('./pages/expert-dashboard.component').then((m) => m.ExpertDashboardComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
