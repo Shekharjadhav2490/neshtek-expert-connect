@@ -21,7 +21,7 @@ import { AuthService } from '../core/auth/auth.service';
       <section class="welcome">
         <div>
           <div class="eyebrow">Customer workspace</div>
-          <h1>Welcome back{{ customer?.contactName ? ', ' + customer.contactName : '' }}.</h1>
+          <h1>Welcome back{{ displayName ? ', ' + displayName : '' }}.</h1>
           <p>Manage your company profile and continue finding the right experts for your requirements.</p>
         </div>
       </section>
@@ -73,6 +73,10 @@ export class CustomerDashboardComponent {
   requirementsCount = 0;
   loading = true;
   errorMessage = '';
+
+  get displayName(): string {
+    return this.customer?.contactName ?? '';
+  }
 
   constructor() {
     const user = this.auth.getCurrentUser();
