@@ -74,7 +74,12 @@ export class LoginComponent {
     this.auth.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigateByUrl('/');
+        const user = this.auth.getCurrentUser();
+        if (user?.role === 'CUSTOMER' || user?.role === 'ROLE_CUSTOMER') {
+          this.router.navigateByUrl('/customer/dashboard');
+        } else {
+          this.router.navigateByUrl('/');
+        }
       },
       error: (error) => {
         this.loading = false;
