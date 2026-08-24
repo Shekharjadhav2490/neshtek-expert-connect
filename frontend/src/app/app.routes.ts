@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -8,6 +9,11 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login.component').then((m) => m.LoginComponent)
+  },
+  {
+    path: 'customer/dashboard',
+    canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])],
+    loadComponent: () => import('./pages/customer-dashboard.component').then((m) => m.CustomerDashboardComponent)
   },
   { path: '**', redirectTo: '' }
 ];
