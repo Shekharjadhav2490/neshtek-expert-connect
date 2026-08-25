@@ -2,14 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
-  {
-    path: '',
-    loadComponent: () => import('./pages/home.component').then((m) => m.HomeComponent)
-  },
-  {
-    path: 'login',
-    loadComponent: () => import('./pages/login.component').then((m) => m.LoginComponent)
-  },
+  { path: '', loadComponent: () => import('./pages/home.component').then((m) => m.HomeComponent) },
+  { path: 'login', loadComponent: () => import('./pages/login.component').then((m) => m.LoginComponent) },
   {
     path: 'customer/dashboard',
     canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])],
@@ -29,6 +23,11 @@ export const routes: Routes = [
     path: 'expert/consultations',
     canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])],
     loadComponent: () => import('./pages/expert-consultation-inbox.component').then((m) => m.ExpertConsultationInboxComponent)
+  },
+  {
+    path: 'admin/dashboard',
+    canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])],
+    loadComponent: () => import('./pages/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
   },
   { path: '**', redirectTo: '' }
 ];
