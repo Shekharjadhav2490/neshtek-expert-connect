@@ -16,6 +16,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/customer-dashboard.component').then((m) => m.CustomerDashboardComponent)
   },
   {
+    path: 'customer/requirements/:requirementId/matches',
+    canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])],
+    loadComponent: () => import('./pages/customer-matching.component').then((m) => m.CustomerMatchingComponent)
+  },
+  {
     path: 'expert/dashboard',
     canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])],
     loadComponent: () => import('./pages/expert-dashboard.component').then((m) => m.ExpertDashboardComponent)
