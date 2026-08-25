@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'expert/consultations', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-consultation-inbox.component').then((m) => m.ExpertConsultationInboxComponent) },
   { path: 'admin/dashboard', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-dashboard.component').then((m) => m.AdminDashboardComponent) },
   { path: 'admin/experts', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-experts.component').then((m) => m.AdminExpertsComponent) },
+  { path: 'admin/customers', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-customers.component').then((m) => m.AdminCustomersComponent) },
   { path: 'admin/consultations', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-consultations.component').then((m) => m.AdminConsultationsComponent) },
   { path: '**', redirectTo: '' }
 ];
