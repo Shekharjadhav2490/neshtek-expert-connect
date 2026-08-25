@@ -35,7 +35,9 @@ public class CustomerRequirementController {
 
     @GetMapping
     public Page<CustomerRequirementResponse> list(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){
-        throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"Use the customer requirements endpoint");
+        if (!authorization.isAdmin()) throw new org.springframework.security.access.AccessDeniedException("Admin access is required");
+        int safeSize=Math.min(Math.max(size,1),100);
+        return service.list(PageRequest.of(Math.max(page,0),safeSize,Sort.by(Sort.Direction.DESC,"createdAt")));
     }
 
     @PutMapping("/{id}")
