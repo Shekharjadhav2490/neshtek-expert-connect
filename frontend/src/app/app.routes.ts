@@ -29,5 +29,10 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])],
     loadComponent: () => import('./pages/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
   },
+  {
+    path: 'admin/consultations',
+    canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])],
+    loadComponent: () => import('./pages/admin-consultations.component').then((m) => m.AdminConsultationsComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
