@@ -25,5 +25,10 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])],
     loadComponent: () => import('./pages/expert-dashboard.component').then((m) => m.ExpertDashboardComponent)
   },
+  {
+    path: 'expert/consultations',
+    canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])],
+    loadComponent: () => import('./pages/expert-consultation-inbox.component').then((m) => m.ExpertConsultationInboxComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
