@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminConsultation, AdminService } from '../core/admin/admin.service';
 import { AuthService } from '../core/auth/auth.service';
@@ -7,7 +8,7 @@ import { AuthService } from '../core/auth/auth.service';
 @Component({
   selector: 'app-admin-consultations',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <main class="page">
       <header class="topbar">
