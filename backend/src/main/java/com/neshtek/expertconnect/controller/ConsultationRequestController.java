@@ -15,10 +15,26 @@ import org.springframework.web.bind.annotation.*;
 public class ConsultationRequestController {
     private final ConsultationRequestService service;
     public ConsultationRequestController(ConsultationRequestService service){this.service=service;}
-    @PostMapping @ResponseStatus(HttpStatus.CREATED) public ConsultationRequestResponse create(@Valid @RequestBody ConsultationRequestRequest request){return service.create(request);}
-    @GetMapping("/{id}") public ConsultationRequestResponse get(@PathVariable Long id){return service.get(id);}
-    @GetMapping("/customers/{customerId}") public Page<ConsultationRequestResponse> byCustomer(@PathVariable Long customerId,Pageable pageable){return service.byCustomer(customerId,pageable);}
-    @GetMapping("/experts/{expertId}") public Page<ConsultationRequestResponse> byExpert(@PathVariable Long expertId,Pageable pageable){return service.byExpert(expertId,pageable);}
-    @PostMapping("/{id}/accept") public ConsultationRequestResponse accept(@PathVariable Long id){return service.accept(id);}
-    @PostMapping("/{id}/reject") public ConsultationRequestResponse reject(@PathVariable Long id,@Valid @RequestBody ConsultationRejectRequest request){return service.reject(id,request);}
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ConsultationRequestResponse create(@Valid @RequestBody ConsultationRequestRequest request){return service.create(request);}
+
+    @GetMapping
+    public Page<ConsultationRequestResponse> all(Pageable pageable){return service.all(pageable);}
+
+    @GetMapping("/{id}")
+    public ConsultationRequestResponse get(@PathVariable Long id){return service.get(id);}
+
+    @GetMapping("/customers/{customerId}")
+    public Page<ConsultationRequestResponse> byCustomer(@PathVariable Long customerId,Pageable pageable){return service.byCustomer(customerId,pageable);}
+
+    @GetMapping("/experts/{expertId}")
+    public Page<ConsultationRequestResponse> byExpert(@PathVariable Long expertId,Pageable pageable){return service.byExpert(expertId,pageable);}
+
+    @PostMapping("/{id}/accept")
+    public ConsultationRequestResponse accept(@PathVariable Long id){return service.accept(id);}
+
+    @PostMapping("/{id}/reject")
+    public ConsultationRequestResponse reject(@PathVariable Long id,@Valid @RequestBody ConsultationRejectRequest request){return service.reject(id,request);}
 }
