@@ -29,9 +29,7 @@ import { AuthService } from '../core/auth/auth.service';
       </section>
     </main>
   `,
-  styles: [`
-    .page{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#f7f9fc;color:#172033;font-family:Inter,system-ui,sans-serif}.card{width:min(440px,100%);background:#fff;border:1px solid #e2e7f0;border-radius:18px;padding:36px;box-shadow:0 18px 50px rgba(23,32,51,.08);box-sizing:border-box}.brand{display:inline-block;text-decoration:none;color:#315ea8;font-weight:800;font-size:14px;margin-bottom:42px}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:800;color:#315ea8}h1{font-size:36px;margin:10px 0}.intro{color:#667085;line-height:1.55;margin:0 0 28px}form{display:flex;flex-direction:column;gap:8px}label{font-weight:700;font-size:14px;margin-top:8px}input{width:100%;box-sizing:border-box;border:1px solid #d6dce7;border-radius:10px;padding:13px 14px;font:inherit;outline:none}input:focus{border-color:#315ea8;box-shadow:0 0 0 3px rgba(49,94,168,.1)}button{margin-top:14px;border:0;border-radius:10px;padding:14px 18px;background:#172033;color:#fff;font-weight:800;font-size:15px;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.field-error{color:#b42318}.error{margin-top:12px;padding:12px;border-radius:9px;background:#fff1f0;color:#b42318;font-size:14px;line-height:1.4}.back{text-align:center;margin:24px 0 0}.back a{color:#315ea8;text-decoration:none;font-weight:700}
-  `]
+  styles: [`.page{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#f7f9fc;color:#172033;font-family:Inter,system-ui,sans-serif}.card{width:min(440px,100%);background:#fff;border:1px solid #e2e7f0;border-radius:18px;padding:36px;box-shadow:0 18px 50px rgba(23,32,51,.08);box-sizing:border-box}.brand{display:inline-block;text-decoration:none;color:#315ea8;font-weight:800;font-size:14px;margin-bottom:42px}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:800;color:#315ea8}h1{font-size:36px;margin:10px 0}.intro{color:#667085;line-height:1.55;margin:0 0 28px}form{display:flex;flex-direction:column;gap:8px}label{font-weight:700;font-size:14px;margin-top:8px}input{width:100%;box-sizing:border-box;border:1px solid #d6dce7;border-radius:10px;padding:13px 14px;font:inherit;outline:none}input:focus{border-color:#315ea8;box-shadow:0 0 0 3px rgba(49,94,168,.1)}button{margin-top:14px;border:0;border-radius:10px;padding:14px 18px;background:#172033;color:#fff;font-weight:800;font-size:15px;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.field-error{color:#b42318}.error{margin-top:12px;padding:12px;border-radius:9px;background:#fff1f0;color:#b42318;font-size:14px;line-height:1.4}.back{text-align:center;margin:24px 0 0}.back a{color:#315ea8;text-decoration:none;font-weight:700}`]
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
@@ -57,6 +55,10 @@ export class LoginComponent {
           case 'EXPERT':
           case 'ROLE_EXPERT':
             this.router.navigateByUrl('/expert/dashboard');
+            break;
+          case 'ADMIN':
+          case 'ROLE_ADMIN':
+            this.router.navigateByUrl('/admin/dashboard');
             break;
           default:
             this.router.navigateByUrl('/');
