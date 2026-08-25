@@ -37,6 +37,14 @@ public class CustomerService {
         return repository.findAll(pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<CustomerResponse> search(String search, Pageable pageable) {
+        if (search == null || search.trim().isEmpty()) {
+            return list(pageable);
+        }
+        return repository.search(search.trim(), pageable).map(this::toResponse);
+    }
+
     @Transactional
     public CustomerResponse update(Long id, CustomerRequest request) {
         Customer customer = find(id);
