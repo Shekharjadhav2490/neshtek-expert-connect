@@ -22,11 +22,21 @@ public class CustomerRequirementService {
     private final CustomerRequirementRepository repository;
     private final CustomerRepository customerRepository;
     public CustomerRequirementService(CustomerRequirementRepository repository, CustomerRepository customerRepository){this.repository=repository;this.customerRepository=customerRepository;}
+
     @Transactional public CustomerRequirementResponse create(CustomerRequirementRequest request){CustomerRequirement entity=new CustomerRequirement();applyRequest(entity,request);entity.setStatus(CustomerRequirementStatus.SUBMITTED);return toResponse(repository.save(entity));}
     @Transactional public CustomerRequirementResponse get(Long id){return toResponse(find(id));}
     @Transactional public Page<CustomerRequirementResponse> list(Pageable pageable){return repository.findAll(pageable).map(this::toResponse);}
     @Transactional public Page<CustomerRequirementResponse> listByCustomer(Long customerId, Pageable pageable){ensureCustomer(customerId);return repository.findByCustomerId(customerId,pageable).map(this::toResponse);}
     @Transactional public CustomerRequirementResponse update(Long id, CustomerRequirementRequest request){CustomerRequirement entity=find(id);applyRequest(entity,request);return toResponse(repository.save(entity));}
+
+    @Transactional public void delete(Long id){
+        CustomerRequirement entity=find(id);
+        if (entity.getStatus() != CustomerRequirementStatus.DRAFT && entity.getStatus() != CustomerRequirementStatus.SUBMITTED) {
+            throw new IllegalStateException("Only DRAFT or SUBMITTED requirements can be deleted");
+        }
+        repository.delete(entity);
+    }
+
     private CustomerRequirement find(Long id){return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Customer requirement not found: "+id));}
     private Customer ensureCustomer(Long id){return customerRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Customer not found: "+id));}
     private void applyRequest(CustomerRequirement entity, CustomerRequirementRequest request){
