@@ -20,9 +20,6 @@ public class ConsultationRequestController {
     @ResponseStatus(HttpStatus.CREATED)
     public ConsultationRequestResponse create(@Valid @RequestBody ConsultationRequestRequest request){return service.create(request);}
 
-    @GetMapping
-    public Page<ConsultationRequestResponse> all(Pageable pageable){return service.all(pageable);}
-
     @GetMapping("/{id}")
     public ConsultationRequestResponse get(@PathVariable Long id){return service.get(id);}
 
