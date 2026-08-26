@@ -13,6 +13,9 @@ public interface EngagementRepository extends JpaRepository<Engagement, Long> {
     Optional<Engagement> findWithDetailsById(Long id);
 
     @EntityGraph(attributePaths = {"consultationRequest", "customer", "expert", "requirement"})
+    Optional<Engagement> findByConsultationRequestId(Long consultationRequestId);
+
+    @EntityGraph(attributePaths = {"consultationRequest", "customer", "expert", "requirement"})
     Page<Engagement> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"consultationRequest", "customer", "expert", "requirement"})
