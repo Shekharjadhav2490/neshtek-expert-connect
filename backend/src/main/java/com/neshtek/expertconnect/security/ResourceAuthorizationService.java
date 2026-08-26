@@ -3,6 +3,7 @@ package com.neshtek.expertconnect.security;
 import com.neshtek.expertconnect.entity.AppUser;
 import com.neshtek.expertconnect.entity.AppUserRole;
 import com.neshtek.expertconnect.entity.ConsultationRequest;
+import com.neshtek.expertconnect.entity.Engagement;
 import com.neshtek.expertconnect.repository.AppUserRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -62,6 +63,16 @@ public class ResourceAuthorizationService {
         if (user.getRole() == AppUserRole.EXPERT && user.getExpert() != null
                 && request.getExpert() != null && user.getExpert().getId().equals(request.getExpert().getId())) return;
         throw new AccessDeniedException("You are not allowed to access this consultation request");
+    }
+
+    public void assertCanAccess(Engagement engagement) {
+        AppUser user = currentUser();
+        if (user.getRole() == AppUserRole.ADMIN) return;
+        if (user.getRole() == AppUserRole.CUSTOMER && user.getCustomer() != null
+                && engagement.getCustomer() != null && user.getCustomer().getId().equals(engagement.getCustomer().getId())) return;
+        if (user.getRole() == AppUserRole.EXPERT && user.getExpert() != null
+                && engagement.getExpert() != null && user.getExpert().getId().equals(engagement.getExpert().getId())) return;
+        throw new AccessDeniedException("You are not allowed to access this engagement");
     }
 
     public void assertCanCreateForCustomer(Long customerId) {
