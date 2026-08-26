@@ -24,12 +24,13 @@ public class ConsultationRequestService {
     private final CustomerRequirementRepository requirementRepository;
     private final ExpertRepository expertRepository;
     private final ResourceAuthorizationService authorization;
+    private final EngagementService engagementService;
 
     public ConsultationRequestService(ConsultationRequestRepository repository, CustomerRepository customerRepository,
                                       CustomerRequirementRepository requirementRepository, ExpertRepository expertRepository,
-                                      ResourceAuthorizationService authorization) {
+                                      ResourceAuthorizationService authorization, EngagementService engagementService) {
         this.repository=repository; this.customerRepository=customerRepository; this.requirementRepository=requirementRepository;
-        this.expertRepository=expertRepository; this.authorization=authorization;
+        this.expertRepository=expertRepository; this.authorization=authorization; this.engagementService=engagementService;
     }
 
     @Transactional
@@ -71,7 +72,9 @@ public class ConsultationRequestService {
         ConsultationRequest e=preparePending(id);
         authorization.assertExpertOwns(e.getExpert().getId());
         e.setRejectionReason(null);e.setRespondedAt(LocalDateTime.now());e.setStatus(ConsultationRequestStatus.ACCEPTED);
-        return toResponse(repository.save(e));
+        ConsultationRequest saved=repository.save(e);
+        engagementService.createFromAcceptedConsultation(saved);
+        return toResponse(saved);
     }
 
     @Transactional
