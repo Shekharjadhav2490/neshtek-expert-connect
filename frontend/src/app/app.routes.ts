@@ -6,6 +6,7 @@ export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login.component').then((m) => m.LoginComponent) },
   { path: 'customer/dashboard', canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])], loadComponent: () => import('./pages/customer-dashboard.component').then((m) => m.CustomerDashboardComponent) },
   { path: 'customer/requirements/:requirementId/matches', canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])], loadComponent: () => import('./pages/customer-matching.component').then((m) => m.CustomerMatchingComponent) },
+  { path: 'customer/consultations', canActivate: [authGuard, roleGuard(['CUSTOMER', 'ROLE_CUSTOMER'])], loadComponent: () => import('./pages/customer-consultations.component').then((m) => m.CustomerConsultationsComponent) },
   { path: 'expert/dashboard', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-dashboard.component').then((m) => m.ExpertDashboardComponent) },
   { path: 'expert/consultations', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-consultation-inbox.component').then((m) => m.ExpertConsultationInboxComponent) },
   { path: 'admin/dashboard', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-dashboard.component').then((m) => m.AdminDashboardComponent) },
