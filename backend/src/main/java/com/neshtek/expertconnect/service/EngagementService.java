@@ -30,18 +30,15 @@ public class EngagementService {
         if (request.getStatus() != ConsultationRequestStatus.ACCEPTED) {
             throw new IllegalArgumentException("Only ACCEPTED consultation requests can create an engagement");
         }
-        if (repository.existsByConsultationRequestId(request.getId())) {
-            return repository.findById(request.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Engagement not found for consultation request: " + request.getId()));
-        }
-
-        Engagement engagement = new Engagement();
-        engagement.setConsultationRequest(request);
-        engagement.setCustomer(request.getCustomer());
-        engagement.setExpert(request.getExpert());
-        engagement.setRequirement(request.getRequirement());
-        engagement.setStatus(EngagementStatus.READY);
-        return repository.save(engagement);
+        return repository.findByConsultationRequestId(request.getId()).orElseGet(() -> {
+            Engagement engagement = new Engagement();
+            engagement.setConsultationRequest(request);
+            engagement.setCustomer(request.getCustomer());
+            engagement.setExpert(request.getExpert());
+            engagement.setRequirement(request.getRequirement());
+            engagement.setStatus(EngagementStatus.READY);
+            return repository.save(engagement);
+        });
     }
 
     @Transactional(readOnly = true)
@@ -108,23 +105,11 @@ public class EngagementService {
         ConsultationRequest request = e.getConsultationRequest();
         String expertName = e.getExpert().getFirstName() + " " + e.getExpert().getLastName();
         return new EngagementResponse(
-                e.getId(),
-                request.getId(),
-                e.getCustomer().getId(),
-                e.getExpert().getId(),
-                expertName,
-                e.getRequirement().getId(),
-                e.getRequirement().getTitle(),
-                e.getStatus().name(),
-                request.getRequestedStartDate(),
-                request.getEstimatedHours(),
-                request.getProposedRate(),
-                request.getCurrencyCode(),
-                e.getStartedAt(),
-                e.getCompletedAt(),
-                e.getCancelledAt(),
-                e.getCreatedAt(),
-                e.getUpdatedAt()
+                e.getId(), request.getId(), e.getCustomer().getId(), e.getExpert().getId(), expertName,
+                e.getRequirement().getId(), e.getRequirement().getTitle(), e.getStatus().name(),
+                request.getRequestedStartDate(), request.getEstimatedHours(), request.getProposedRate(),
+                request.getCurrencyCode(), e.getStartedAt(), e.getCompletedAt(), e.getCancelledAt(),
+                e.getCreatedAt(), e.getUpdatedAt()
         );
     }
 }
