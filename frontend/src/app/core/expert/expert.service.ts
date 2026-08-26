@@ -60,7 +60,7 @@ export class ExpertService {
   }
 
   getConsultationRequests(expertId: number): Observable<PageResponse<ConsultationRequest>> {
-    return this.http.get<PageResponse<ConsultationRequest>>(`${this.consultationUrl}/experts/${expertId}?page=0&size=10`);
+    return this.http.get<PageResponse<ConsultationRequest>>(`${this.consultationUrl}/experts/${expertId}?page=0&size=20`);
   }
 
   acceptConsultation(id: number): Observable<ConsultationRequest> {

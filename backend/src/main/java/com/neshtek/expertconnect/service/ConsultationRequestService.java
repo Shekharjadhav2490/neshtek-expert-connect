@@ -56,14 +56,14 @@ public class ConsultationRequestService {
     public Page<ConsultationRequestResponse> byCustomer(Long customerId,Pageable pageable){
         authorization.assertCustomerOwns(customerId);
         if(!customerRepository.existsById(customerId))throw new ResourceNotFoundException("Customer not found: "+customerId);
-        return repository.findByCustomerId(customerId,pageable).map(this::toResponse);
+        return repository.findByCustomerIdOrderByCreatedAtDesc(customerId,pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly=true)
     public Page<ConsultationRequestResponse> byExpert(Long expertId,Pageable pageable){
         authorization.assertExpertOwns(expertId);
         if(!expertRepository.existsById(expertId))throw new ResourceNotFoundException("Expert not found: "+expertId);
-        return repository.findByExpertId(expertId,pageable).map(this::toResponse);
+        return repository.findByExpertIdOrderByCreatedAtDesc(expertId,pageable).map(this::toResponse);
     }
 
     @Transactional

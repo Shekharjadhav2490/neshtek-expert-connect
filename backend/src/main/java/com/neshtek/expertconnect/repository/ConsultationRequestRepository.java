@@ -12,6 +12,6 @@ public interface ConsultationRequestRepository extends JpaRepository<Consultatio
     @EntityGraph(attributePaths = {"customer", "requirement", "expert"})
     Page<ConsultationRequest> findAll(Pageable pageable);
 
-    Page<ConsultationRequest> findByCustomerId(Long customerId, Pageable pageable);
-    Page<ConsultationRequest> findByExpertId(Long expertId, Pageable pageable);
+    Page<ConsultationRequest> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+    Page<ConsultationRequest> findByExpertIdOrderByCreatedAtDesc(Long expertId, Pageable pageable);
 }
