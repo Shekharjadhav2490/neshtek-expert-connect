@@ -33,6 +33,26 @@ export interface ConsultationRequest {
   updatedAt: string;
 }
 
+export interface Engagement {
+  id: number;
+  consultationRequestId: number;
+  customerId: number;
+  expertId: number;
+  expertName: string;
+  requirementId: number;
+  requirementTitle: string;
+  status: 'READY' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | string;
+  requestedStartDate: string | null;
+  estimatedHours: number | null;
+  agreedRate: number | null;
+  currencyCode: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -46,6 +66,7 @@ export class ExpertService {
   private readonly http = inject(HttpClient);
   private readonly expertsUrl = 'http://localhost:8080/api/v1/experts';
   private readonly consultationUrl = 'http://localhost:8080/api/v1/consultation-requests';
+  private readonly engagementUrl = 'http://localhost:8080/api/v1/engagements';
 
   findByEmail(email: string): Observable<ExpertProfile> {
     return this.http.get<PageResponse<ExpertProfile>>(`${this.expertsUrl}?page=0&size=100`).pipe(
@@ -69,5 +90,21 @@ export class ExpertService {
 
   rejectConsultation(id: number, reason: string): Observable<ConsultationRequest> {
     return this.http.post<ConsultationRequest>(`${this.consultationUrl}/${id}/reject`, { reason });
+  }
+
+  getEngagements(expertId: number): Observable<PageResponse<Engagement>> {
+    return this.http.get<PageResponse<Engagement>>(`${this.engagementUrl}/experts/${expertId}?page=0&size=20`);
+  }
+
+  startEngagement(id: number): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/start`, {});
+  }
+
+  completeEngagement(id: number): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/complete`, {});
+  }
+
+  cancelEngagement(id: number): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/cancel`, {});
   }
 }
