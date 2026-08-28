@@ -103,7 +103,7 @@ public class WorkLogService {
         WorkLog l = find(id);
         authorization.assertCustomerOwns(l.getEngagement().getCustomer().getId());
         if (l.getStatus() != WorkLogStatus.SUBMITTED) throw new IllegalArgumentException("Only SUBMITTED work logs can be approved");
-        l.setStatus(WorkLogStatus.APPROVED); l.setReviewedAt(LocalDateTime.now()); l.setReviewerComment(c);
+        l.setStatus(WorkLogStatus.APPROVED); l.setReviewedAt(LocalDateTime.now()); l.setReviewerComment(c == null || c.isBlank() ? null : c.trim());
         return toResponse(repository.save(l));
     }
 
@@ -112,7 +112,8 @@ public class WorkLogService {
         WorkLog l = find(id);
         authorization.assertCustomerOwns(l.getEngagement().getCustomer().getId());
         if (l.getStatus() != WorkLogStatus.SUBMITTED) throw new IllegalArgumentException("Only SUBMITTED work logs can be rejected");
-        l.setStatus(WorkLogStatus.REJECTED); l.setReviewedAt(LocalDateTime.now()); l.setReviewerComment(c);
+        if (c == null || c.isBlank()) throw new IllegalArgumentException("A rejection reason is required");
+        l.setStatus(WorkLogStatus.REJECTED); l.setReviewedAt(LocalDateTime.now()); l.setReviewerComment(c.trim());
         return toResponse(repository.save(l));
     }
 
