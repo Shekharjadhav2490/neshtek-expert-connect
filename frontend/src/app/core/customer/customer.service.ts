@@ -62,6 +62,26 @@ export interface CustomerRequirementRequest {
   skills?: { skillName: string; priorityOrder: number; mandatory: boolean }[];
 }
 
+export interface CustomerEngagement {
+  id: number;
+  consultationRequestId: number;
+  customerId: number;
+  expertId: number;
+  expertName: string;
+  requirementId: number;
+  requirementTitle: string;
+  status: string;
+  requestedStartDate: string;
+  estimatedHours: number;
+  agreedRate: number;
+  currencyCode: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -75,10 +95,12 @@ export class CustomerService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = 'http://localhost:8080/api/v1/customers';
   private readonly requirementsUrl = 'http://localhost:8080/api/v1/requirements';
+  private readonly engagementsUrl = 'http://localhost:8080/api/v1/engagements';
 
   getCustomer(customerId: number): Observable<CustomerProfile> { return this.http.get<CustomerProfile>(`${this.apiUrl}/${customerId}`); }
   getRequirements(customerId: number): Observable<PageResponse<CustomerRequirement>> { return this.http.get<PageResponse<CustomerRequirement>>(`${this.apiUrl}/${customerId}/requirements?page=0&size=20`); }
   getRequirement(requirementId: number): Observable<CustomerRequirement> { return this.http.get<CustomerRequirement>(`${this.requirementsUrl}/${requirementId}`); }
   createRequirement(request: CustomerRequirementRequest): Observable<CustomerRequirement> { return this.http.post<CustomerRequirement>(this.requirementsUrl, request); }
   deleteRequirement(requirementId: number): Observable<void> { return this.http.delete<void>(`${this.requirementsUrl}/${requirementId}`); }
+  getEngagements(customerId: number): Observable<PageResponse<CustomerEngagement>> { return this.http.get<PageResponse<CustomerEngagement>>(`${this.engagementsUrl}/customers/${customerId}?page=0&size=20`); }
 }
