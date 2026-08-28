@@ -11,6 +11,7 @@ import com.neshtek.expertconnect.repository.SettlementRepository;
 import com.neshtek.expertconnect.security.ResourceAuthorizationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,10 @@ public class SettlementService {
         Engagement e = engagements.findWithDetailsById(engagementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Engagement not found: " + engagementId));
         authorization.assertExpertOwns(e.getExpert().getId());
+
         EngagementBillingSummaryResponse summary = billing.get(engagementId);
+        if (summary.pendingHours() != null && summary.pendingHours().signum() > 0)
+            throw new IllegalArgumentException("Settlement can only be requested after all submitted work logs are approved");
         if (summary.approvedBilling() == null || summary.approvedBilling().signum() <= 0)
             throw new IllegalArgumentException("Settlement can only be requested when approved earnings are greater than zero");
         if (settlements.existsByEngagementIdAndStatusIn(engagementId,
