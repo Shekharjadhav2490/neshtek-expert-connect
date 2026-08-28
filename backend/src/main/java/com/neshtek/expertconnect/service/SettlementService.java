@@ -57,7 +57,10 @@ public class SettlementService {
         Engagement e = engagements.findWithDetailsById(engagementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Engagement not found: " + engagementId));
         authorization.assertExpertOwns(e.getExpert().getId());
+
         EngagementBillingSummaryResponse summary = billing.get(engagementId);
+        if (summary.pendingHours() != null && summary.pendingHours().signum() > 0)
+            throw new IllegalArgumentException("Settlement can only be requested after all submitted work logs are approved");
         if (summary.approvedBilling() == null || summary.approvedBilling().signum() <= 0)
             throw new IllegalArgumentException("Settlement can only be requested when approved earnings are greater than zero");
         if (settlements.existsByEngagementIdAndStatusIn(engagementId,
