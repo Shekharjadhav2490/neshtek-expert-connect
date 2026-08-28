@@ -23,5 +23,5 @@ public class WorkLogController {
     @PutMapping("/{id}") public WorkLogResponse update(@PathVariable Long id,@Valid @RequestBody WorkLogUpdateRequest request){return service.update(id,request);}
     @PostMapping("/{id}/submit") public WorkLogResponse submit(@PathVariable Long id){return service.submit(id);}
     @PostMapping("/{id}/approve") public WorkLogResponse approve(@PathVariable Long id,@RequestParam(required=false) String comment){return service.approve(id,comment);}
-    @PostMapping("/{id}/reject") public WorkLogResponse reject(@PathVariable Long id,@RequestParam(required=false) String comment){return service.reject(id,comment);}
+    @PostMapping("/{id}/reject") public WorkLogResponse reject(@PathVariable Long id,@RequestParam String comment){return service.reject(id,comment);}
 }
