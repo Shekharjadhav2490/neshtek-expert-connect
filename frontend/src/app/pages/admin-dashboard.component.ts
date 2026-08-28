@@ -6,81 +6,21 @@ import { AuthService } from '../core/auth/auth.service';
 import { AdminService } from '../core/admin/admin.service';
 
 @Component({
-  selector: 'app-admin-dashboard',
-  standalone: true,
-  imports: [CommonModule],
+  selector: 'app-admin-dashboard', standalone: true, imports: [CommonModule],
   template: `
-    <main class="page">
-      <header class="topbar">
-        <div><div class="brand">NeshTek Expert Connect</div><div class="subtitle">Administration</div></div>
-        <button (click)="logout()">Sign out</button>
-      </header>
-      <section class="hero">
-        <div class="hero-row"><div><div class="eyebrow">Admin workspace</div><h1>Platform overview</h1><p>Live marketplace statistics from the application database.</p></div><button class="refresh" (click)="loadData()" [disabled]="loading">{{ loading ? 'Refreshing…' : 'Refresh' }}</button></div>
-        <div *ngIf="error" class="error">{{ error }}</div>
-      </section>
-      <section class="grid">
-        <button class="card" (click)="open('/admin/customers')"><span>Customers</span><strong>{{ loading ? '…' : customerCount }}</strong><small>Customer accounts</small></button>
-        <button class="card" (click)="open('/admin/experts')"><span>Experts</span><strong>{{ loading ? '…' : expertCount }}</strong><small>Expert profiles</small></button>
-        <button class="card" (click)="open('/admin/requirements')"><span>Requirements</span><strong>{{ loading ? '…' : requirementCount }}</strong><small>Customer requirements</small></button>
-        <button class="card" (click)="open('/admin/consultations')"><span>Consultations</span><strong>{{ loading ? '…' : consultationCount }}</strong><small>Consultation requests</small></button>
-      </section>
-      <section class="panel">
-        <div class="eyebrow">Administration</div><h2>Management areas</h2>
-        <div class="areas">
-          <button (click)="open('/admin/experts')"><b>Experts</b><p>Review and manage expert profiles and verification.</p></button>
-          <button (click)="open('/admin/customers')"><b>Customers</b><p>Review customer accounts and company profiles.</p></button>
-          <button (click)="open('/admin/requirements')"><b>Requirements</b><p>Monitor marketplace requirements.</p></button>
-          <button (click)="open('/admin/consultations')"><b>Consultations</b><p>Monitor consultation request lifecycle.</p></button>
-        </div>
-      </section>
-    </main>
-  `,
+    <main class="page"><header class="topbar"><div><div class="brand">NeshTek Expert Connect</div><div class="subtitle">Administration</div></div><button (click)="logout()">Sign out</button></header>
+    <section class="hero"><div class="hero-row"><div><div class="eyebrow">Admin workspace</div><h1>Platform overview</h1><p>Live marketplace statistics from the application database.</p></div><button class="refresh" (click)="loadData()" [disabled]="loading">{{loading?'Refreshing…':'Refresh'}}</button></div><div *ngIf="error" class="error">{{error}}</div></section>
+    <section class="grid"><button class="card" (click)="open('/admin/customers')"><span>Customers</span><strong>{{loading?'…':customerCount}}</strong><small>Customer accounts</small></button><button class="card" (click)="open('/admin/experts')"><span>Experts</span><strong>{{loading?'…':expertCount}}</strong><small>Expert profiles</small></button><button class="card" (click)="open('/admin/requirements')"><span>Requirements</span><strong>{{loading?'…':requirementCount}}</strong><small>Customer requirements</small></button><button class="card" (click)="open('/admin/consultations')"><span>Consultations</span><strong>{{loading?'…':consultationCount}}</strong><small>Consultation requests</small></button><button class="card engagement-card" (click)="open('/admin/engagements')"><span>Engagements</span><strong>{{loading?'…':engagementCount}}</strong><small>Active customer-expert work</small></button></section>
+    <section class="panel"><div class="eyebrow">Administration</div><h2>Management areas</h2><div class="areas"><button (click)="open('/admin/experts')"><b>Experts</b><p>Review and manage expert profiles and verification.</p></button><button (click)="open('/admin/customers')"><b>Customers</b><p>Review customer accounts and company profiles.</p></button><button (click)="open('/admin/requirements')"><b>Requirements</b><p>Monitor marketplace requirements.</p></button><button (click)="open('/admin/consultations')"><b>Consultations</b><p>Monitor consultation request lifecycle.</p></button><button (click)="open('/admin/engagements')"><b>Engagements</b><p>Monitor READY, ACTIVE, COMPLETED and CANCELLED engagements.</p></button></div></section>
+    </main>`,
   styles: [`
-    .page{min-height:100vh;background:#f7f9fc;color:#172033;font-family:Inter,system-ui,sans-serif;padding:0 32px 48px}.topbar,.hero,.grid,.panel{max-width:1180px;margin:auto}.topbar{padding:22px 0;border-bottom:1px solid #e3e8f0;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:850}.subtitle,small{color:#667085;font-size:14px}.subtitle{margin-top:4px}.topbar button,.refresh{border:1px solid #d5dbe6;background:#fff;border-radius:9px;padding:10px 16px;font-weight:750;cursor:pointer}.hero{padding:52px 0 28px}.hero-row{display:flex;justify-content:space-between;gap:20px;align-items:end}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:850;color:#315ea8}.hero h1{font-size:42px;margin:9px 0}.hero p{color:#667085}.error{margin-top:18px;padding:12px 14px;border:1px solid #e8b4b4;background:#fff5f5;border-radius:10px;color:#a33}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card,.panel{background:#fff;border:1px solid #e1e6ef;border-radius:16px;padding:22px;box-shadow:0 12px 32px rgba(23,32,51,.05)}.card{width:100%;text-align:left;cursor:pointer;color:inherit}.card:hover,.areas button:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(23,32,51,.08)}.card span{display:block;color:#667085;font-size:13px;font-weight:800;text-transform:uppercase}.card strong{display:block;font-size:40px;margin:18px 0 4px}.panel{margin-top:24px}.panel h2{margin:8px 0 20px}.areas{display:grid;grid-template-columns:1fr 1fr;gap:14px}.areas button{border:1px solid #e5e9f0;border-radius:12px;padding:18px;background:#fff;text-align:left;cursor:pointer;color:inherit}.areas p{color:#667085;line-height:1.5;margin-bottom:0}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.areas{grid-template-columns:1fr}.page{padding:0 18px 36px}.hero-row{align-items:start;flex-direction:column}}@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:34px}}
+    .page{min-height:100vh;background:#f7f9fc;color:#172033;font-family:Inter,system-ui,sans-serif;padding:0 32px 48px}.topbar,.hero,.grid,.panel{max-width:1180px;margin:auto}.topbar{padding:22px 0;border-bottom:1px solid #e3e8f0;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:850}.subtitle,small{color:#667085;font-size:14px}.subtitle{margin-top:4px}.topbar button,.refresh{border:1px solid #d5dbe6;background:#fff;border-radius:9px;padding:10px 16px;font-weight:750;cursor:pointer}.hero{padding:52px 0 28px}.hero-row{display:flex;justify-content:space-between;gap:20px;align-items:end}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:850;color:#315ea8}.hero h1{font-size:42px;margin:9px 0}.hero p{color:#667085}.error{margin-top:18px;padding:12px 14px;border:1px solid #e8b4b4;background:#fff5f5;border-radius:10px;color:#a33}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}.card,.panel{background:#fff;border:1px solid #e1e6ef;border-radius:16px;padding:22px;box-shadow:0 12px 32px rgba(23,32,51,.05)}.card{width:100%;text-align:left;cursor:pointer;color:inherit}.card:hover,.areas button:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(23,32,51,.08)}.card span{display:block;color:#667085;font-size:13px;font-weight:800;text-transform:uppercase}.card strong{display:block;font-size:40px;margin:18px 0 4px}.engagement-card{border-color:#cfd9eb}.panel{margin-top:24px}.panel h2{margin:8px 0 20px}.areas{display:grid;grid-template-columns:1fr 1fr;gap:14px}.areas button{border:1px solid #e5e9f0;border-radius:12px;padding:18px;background:#fff;text-align:left;cursor:pointer;color:inherit}.areas p{color:#667085;line-height:1.5;margin-bottom:0}@media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:800px){.areas{grid-template-columns:1fr}.page{padding:0 18px 36px}.hero-row{align-items:start;flex-direction:column}}@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:34px}}
   `]
 })
 export class AdminDashboardComponent {
-  private readonly auth = inject(AuthService);
-  private readonly admin = inject(AdminService);
-  private readonly router = inject(Router);
-  customerCount = 0;
-  expertCount = 0;
-  requirementCount = 0;
-  consultationCount = 0;
-  loading = false;
-  error = '';
-
-  constructor(){
-    const user=this.auth.getCurrentUser();
-    if(!user || !['ADMIN','ROLE_ADMIN'].includes(user.role)){ this.router.navigateByUrl('/'); return; }
-    this.loadData();
-  }
-
-  loadData(){
-    this.loading = true;
-    this.error = '';
-    forkJoin({
-      customers: this.admin.getCustomers(0, 1),
-      experts: this.admin.getExperts(0, 1),
-      requirements: this.admin.getRequirements(0, 1),
-      consultations: this.admin.getConsultations(0, 1)
-    }).subscribe({
-      next: result => {
-        this.customerCount = result.customers.totalElements;
-        this.expertCount = result.experts.totalElements;
-        this.requirementCount = result.requirements.totalElements;
-        this.consultationCount = result.consultations.totalElements;
-        this.loading = false;
-      },
-      error: err => {
-        console.error('Admin dashboard load failed', err);
-        this.error = 'Unable to load live dashboard data. Please refresh and try again.';
-        this.loading = false;
-      }
-    });
-  }
-
-  open(path: string){ this.router.navigateByUrl(path); }
-  logout(){ this.auth.logout(); this.router.navigateByUrl('/login'); }
+  private readonly auth=inject(AuthService); private readonly admin=inject(AdminService); private readonly router=inject(Router);
+  customerCount=0; expertCount=0; requirementCount=0; consultationCount=0; engagementCount=0; loading=false; error='';
+  constructor(){const user=this.auth.getCurrentUser();if(!user||!['ADMIN','ROLE_ADMIN'].includes(user.role)){this.router.navigateByUrl('/');return;}this.loadData();}
+  loadData(){this.loading=true;this.error='';forkJoin({customers:this.admin.getCustomers(0,1),experts:this.admin.getExperts(0,1),requirements:this.admin.getRequirements(0,1),consultations:this.admin.getConsultations(0,1),engagements:this.admin.getEngagements(0,1)}).subscribe({next:r=>{this.customerCount=r.customers.totalElements;this.expertCount=r.experts.totalElements;this.requirementCount=r.requirements.totalElements;this.consultationCount=r.consultations.totalElements;this.engagementCount=r.engagements.totalElements;this.loading=false;},error:err=>{console.error('Admin dashboard load failed',err);this.error='Unable to load live dashboard data. Please refresh and try again.';this.loading=false;}});}
+  open(path:string){this.router.navigateByUrl(path);} logout(){this.auth.logout();this.router.navigateByUrl('/login');}
 }
