@@ -11,7 +11,6 @@ import com.neshtek.expertconnect.repository.SettlementRepository;
 import com.neshtek.expertconnect.security.ResourceAuthorizationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
