@@ -14,5 +14,6 @@ export const routes: Routes = [
   { path: 'admin/customers', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-customers.component').then((m) => m.AdminCustomersComponent) },
   { path: 'admin/requirements', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-requirements.component').then((m) => m.AdminRequirementsComponent) },
   { path: 'admin/consultations', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-consultations.component').then((m) => m.AdminConsultationsComponent) },
+  { path: 'admin/engagements', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-engagements.component').then((m) => m.AdminEngagementsComponent) },
   { path: '**', redirectTo: '' }
 ];
