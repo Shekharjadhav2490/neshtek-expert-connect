@@ -1,5 +1,6 @@
 package com.neshtek.expertconnect.controller;
 
+import com.neshtek.expertconnect.dto.EngagementUsageResponse;
 import com.neshtek.expertconnect.dto.WorkLogCreateRequest;
 import com.neshtek.expertconnect.dto.WorkLogResponse;
 import com.neshtek.expertconnect.dto.WorkLogUpdateRequest;
@@ -15,6 +16,7 @@ public class WorkLogController {
     private final WorkLogService service;
     public WorkLogController(WorkLogService service){this.service=service;}
     @GetMapping("/engagements/{engagementId}") public Page<WorkLogResponse> byEngagement(@PathVariable Long engagementId,Pageable pageable){return service.byEngagement(engagementId,pageable);}
+    @GetMapping("/engagements/{engagementId}/usage") public EngagementUsageResponse usage(@PathVariable Long engagementId){return service.usage(engagementId);}
     @GetMapping("/customers/{customerId}") public Page<WorkLogResponse> byCustomer(@PathVariable Long customerId,Pageable pageable){return service.byCustomer(customerId,pageable);}
     @GetMapping("/experts/{expertId}") public Page<WorkLogResponse> byExpert(@PathVariable Long expertId,Pageable pageable){return service.byExpert(expertId,pageable);}
     @PostMapping("/engagements/{engagementId}") public WorkLogResponse create(@PathVariable Long engagementId,@Valid @RequestBody WorkLogCreateRequest request){return service.create(engagementId,request);}
