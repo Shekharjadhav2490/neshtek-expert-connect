@@ -35,6 +35,15 @@ public class Engagement {
     @Column(name = "STARTED_AT")
     private LocalDateTime startedAt;
 
+    @Column(name = "PAUSED_AT")
+    private LocalDateTime pausedAt;
+
+    @Column(name = "RESUMED_AT")
+    private LocalDateTime resumedAt;
+
+    @Column(name = "PAUSE_REASON", length = 1000)
+    private String pauseReason;
+
     @Column(name = "COMPLETED_AT")
     private LocalDateTime completedAt;
 
@@ -72,6 +81,12 @@ public class Engagement {
     public void setStatus(EngagementStatus v) { status = v; }
     public LocalDateTime getStartedAt() { return startedAt; }
     public void setStartedAt(LocalDateTime v) { startedAt = v; }
+    public LocalDateTime getPausedAt() { return pausedAt; }
+    public void setPausedAt(LocalDateTime v) { pausedAt = v; }
+    public LocalDateTime getResumedAt() { return resumedAt; }
+    public void setResumedAt(LocalDateTime v) { resumedAt = v; }
+    public String getPauseReason() { return pauseReason; }
+    public void setPauseReason(String v) { pauseReason = v; }
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime v) { completedAt = v; }
     public LocalDateTime getCancelledAt() { return cancelledAt; }

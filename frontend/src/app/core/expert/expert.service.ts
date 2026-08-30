@@ -41,16 +41,31 @@ export interface Engagement {
   expertName: string;
   requirementId: number;
   requirementTitle: string;
-  status: 'READY' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | string;
+  status: 'READY' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED' | string;
   requestedStartDate: string | null;
   estimatedHours: number | null;
   agreedRate: number | null;
   currencyCode: string | null;
   startedAt: string | null;
+  pausedAt: string | null;
+  resumedAt: string | null;
+  pauseReason: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EngagementHistory {
+  id: number;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  actorUserId: number | null;
+  actorRole: string | null;
+  actorName: string | null;
+  reason: string | null;
+  occurredAt: string;
 }
 
 interface PageResponse<T> {
@@ -72,9 +87,7 @@ export class ExpertService {
     return this.http.get<PageResponse<ExpertProfile>>(`${this.expertsUrl}?page=0&size=100`).pipe(
       map(page => {
         const expert = page.content.find(item => item.email?.toLowerCase() === email.toLowerCase());
-        if (!expert) {
-          throw new Error('Expert profile is not available for this account.');
-        }
+        if (!expert) throw new Error('Expert profile is not available for this account.');
         return expert;
       })
     );
@@ -96,8 +109,24 @@ export class ExpertService {
     return this.http.get<PageResponse<Engagement>>(`${this.engagementUrl}/experts/${expertId}?page=0&size=20`);
   }
 
+  getEngagement(id: number): Observable<Engagement> {
+    return this.http.get<Engagement>(`${this.engagementUrl}/${id}`);
+  }
+
+  getEngagementHistory(id: number): Observable<EngagementHistory[]> {
+    return this.http.get<EngagementHistory[]>(`${this.engagementUrl}/${id}/history`);
+  }
+
   startEngagement(id: number): Observable<Engagement> {
     return this.http.post<Engagement>(`${this.engagementUrl}/${id}/start`, {});
+  }
+
+  pauseEngagement(id: number, reason: string): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/pause?reason=${encodeURIComponent(reason)}`, {});
+  }
+
+  resumeEngagement(id: number): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/resume`, {});
   }
 
   completeEngagement(id: number): Observable<Engagement> {
