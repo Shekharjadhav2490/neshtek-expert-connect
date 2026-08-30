@@ -73,6 +73,38 @@ public class EngagementService {
     }
 
     @Transactional
+    public EngagementResponse pause(Long id, String reason) {
+        Engagement engagement = find(id);
+        authorization.assertExpertOwns(engagement.getExpert().getId());
+        if (engagement.getStatus() != EngagementStatus.ACTIVE) {
+            throw new IllegalArgumentException("Only ACTIVE engagements can be paused");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Pause reason is required");
+        }
+        String trimmedReason = reason.trim();
+        if (trimmedReason.length() > 1000) {
+            throw new IllegalArgumentException("Pause reason cannot exceed 1000 characters");
+        }
+        engagement.setStatus(EngagementStatus.PAUSED);
+        engagement.setPausedAt(LocalDateTime.now());
+        engagement.setPauseReason(trimmedReason);
+        return toResponse(repository.save(engagement));
+    }
+
+    @Transactional
+    public EngagementResponse resume(Long id) {
+        Engagement engagement = find(id);
+        authorization.assertExpertOwns(engagement.getExpert().getId());
+        if (engagement.getStatus() != EngagementStatus.PAUSED) {
+            throw new IllegalArgumentException("Only PAUSED engagements can be resumed");
+        }
+        engagement.setStatus(EngagementStatus.ACTIVE);
+        engagement.setResumedAt(LocalDateTime.now());
+        return toResponse(repository.save(engagement));
+    }
+
+    @Transactional
     public EngagementResponse complete(Long id) {
         Engagement engagement = find(id);
         authorization.assertExpertOwns(engagement.getExpert().getId());
@@ -88,8 +120,10 @@ public class EngagementService {
     public EngagementResponse cancel(Long id) {
         Engagement engagement = find(id);
         authorization.assertCanAccess(engagement);
-        if (engagement.getStatus() != EngagementStatus.READY && engagement.getStatus() != EngagementStatus.ACTIVE) {
-            throw new IllegalArgumentException("Only READY or ACTIVE engagements can be cancelled");
+        if (engagement.getStatus() != EngagementStatus.READY
+                && engagement.getStatus() != EngagementStatus.ACTIVE
+                && engagement.getStatus() != EngagementStatus.PAUSED) {
+            throw new IllegalArgumentException("Only READY, ACTIVE or PAUSED engagements can be cancelled");
         }
         engagement.setStatus(EngagementStatus.CANCELLED);
         engagement.setCancelledAt(LocalDateTime.now());
@@ -108,8 +142,8 @@ public class EngagementService {
                 e.getId(), request.getId(), e.getCustomer().getId(), e.getExpert().getId(), expertName,
                 e.getRequirement().getId(), e.getRequirement().getTitle(), e.getStatus().name(),
                 request.getRequestedStartDate(), request.getEstimatedHours(), request.getProposedRate(),
-                request.getCurrencyCode(), e.getStartedAt(), e.getCompletedAt(), e.getCancelledAt(),
-                e.getCreatedAt(), e.getUpdatedAt()
+                request.getCurrencyCode(), e.getStartedAt(), e.getPausedAt(), e.getResumedAt(), e.getPauseReason(),
+                e.getCompletedAt(), e.getCancelledAt(), e.getCreatedAt(), e.getUpdatedAt()
         );
     }
 }
