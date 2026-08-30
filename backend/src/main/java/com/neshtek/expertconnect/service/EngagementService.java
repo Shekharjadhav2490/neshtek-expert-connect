@@ -19,10 +19,14 @@ import java.time.LocalDateTime;
 public class EngagementService {
     private final EngagementRepository repository;
     private final ResourceAuthorizationService authorization;
+    private final EngagementHistoryService historyService;
 
-    public EngagementService(EngagementRepository repository, ResourceAuthorizationService authorization) {
+    public EngagementService(EngagementRepository repository,
+                             ResourceAuthorizationService authorization,
+                             EngagementHistoryService historyService) {
         this.repository = repository;
         this.authorization = authorization;
+        this.historyService = historyService;
     }
 
     @Transactional
@@ -37,7 +41,9 @@ public class EngagementService {
             engagement.setExpert(request.getExpert());
             engagement.setRequirement(request.getRequirement());
             engagement.setStatus(EngagementStatus.READY);
-            return repository.save(engagement);
+            Engagement saved = repository.save(engagement);
+            historyService.record(saved, "ENGAGEMENT_CREATED", null, EngagementStatus.READY.name(), null);
+            return saved;
         });
     }
 
@@ -67,9 +73,12 @@ public class EngagementService {
         if (engagement.getStatus() != EngagementStatus.READY) {
             throw new IllegalArgumentException("Only READY engagements can be started");
         }
+        String from = engagement.getStatus().name();
         engagement.setStatus(EngagementStatus.ACTIVE);
         engagement.setStartedAt(LocalDateTime.now());
-        return toResponse(repository.save(engagement));
+        Engagement saved = repository.save(engagement);
+        historyService.record(saved, "ENGAGEMENT_STARTED", from, saved.getStatus().name(), null);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -86,10 +95,13 @@ public class EngagementService {
         if (trimmedReason.length() > 1000) {
             throw new IllegalArgumentException("Pause reason cannot exceed 1000 characters");
         }
+        String from = engagement.getStatus().name();
         engagement.setStatus(EngagementStatus.PAUSED);
         engagement.setPausedAt(LocalDateTime.now());
         engagement.setPauseReason(trimmedReason);
-        return toResponse(repository.save(engagement));
+        Engagement saved = repository.save(engagement);
+        historyService.record(saved, "ENGAGEMENT_PAUSED", from, saved.getStatus().name(), trimmedReason);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -99,9 +111,12 @@ public class EngagementService {
         if (engagement.getStatus() != EngagementStatus.PAUSED) {
             throw new IllegalArgumentException("Only PAUSED engagements can be resumed");
         }
+        String from = engagement.getStatus().name();
         engagement.setStatus(EngagementStatus.ACTIVE);
         engagement.setResumedAt(LocalDateTime.now());
-        return toResponse(repository.save(engagement));
+        Engagement saved = repository.save(engagement);
+        historyService.record(saved, "ENGAGEMENT_RESUMED", from, saved.getStatus().name(), null);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -111,9 +126,12 @@ public class EngagementService {
         if (engagement.getStatus() != EngagementStatus.ACTIVE) {
             throw new IllegalArgumentException("Only ACTIVE engagements can be completed");
         }
+        String from = engagement.getStatus().name();
         engagement.setStatus(EngagementStatus.COMPLETED);
         engagement.setCompletedAt(LocalDateTime.now());
-        return toResponse(repository.save(engagement));
+        Engagement saved = repository.save(engagement);
+        historyService.record(saved, "ENGAGEMENT_COMPLETED", from, saved.getStatus().name(), null);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -125,9 +143,12 @@ public class EngagementService {
                 && engagement.getStatus() != EngagementStatus.PAUSED) {
             throw new IllegalArgumentException("Only READY, ACTIVE or PAUSED engagements can be cancelled");
         }
+        String from = engagement.getStatus().name();
         engagement.setStatus(EngagementStatus.CANCELLED);
         engagement.setCancelledAt(LocalDateTime.now());
-        return toResponse(repository.save(engagement));
+        Engagement saved = repository.save(engagement);
+        historyService.record(saved, "ENGAGEMENT_CANCELLED", from, saved.getStatus().name(), null);
+        return toResponse(saved);
     }
 
     private Engagement find(Long id) {
