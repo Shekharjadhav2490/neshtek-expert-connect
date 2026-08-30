@@ -7,6 +7,7 @@ import com.neshtek.expertconnect.service.ExpertReplacementService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -33,6 +34,15 @@ public class ExpertReplacementController {
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ExpertReplacementResponse approve(@PathVariable Long id,@RequestParam(required=false) String comment){return service.approve(id,comment);}
+
+    @PostMapping("/{id}/financial-resolution")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ExpertReplacementResponse resolveFinancial(@PathVariable Long id,
+                                                       @RequestParam String action,
+                                                       @RequestParam(required=false) BigDecimal amount,
+                                                       @RequestParam(required=false) String note){
+        return service.resolveFinancial(id,action,amount,note);
+    }
 
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasRole('ADMIN')")
