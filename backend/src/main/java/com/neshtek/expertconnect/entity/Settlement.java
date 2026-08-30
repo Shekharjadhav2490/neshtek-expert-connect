@@ -24,6 +24,9 @@ public class Settlement {
     @Column(name = "CURRENCY_CODE", nullable = false, columnDefinition = "CHAR(3)") private String currencyCode;
     @Enumerated(EnumType.STRING) @Column(name = "STATUS", nullable = false, length = 30) private SettlementStatus status = SettlementStatus.REQUESTED;
     @Column(name = "REQUESTED_AT", nullable = false) private LocalDateTime requestedAt;
+    @Column(name = "CUSTOMER_APPROVED_AT") private LocalDateTime customerApprovedAt;
+    @Column(name = "CUSTOMER_REJECTED_AT") private LocalDateTime customerRejectedAt;
+    @Column(name = "CUSTOMER_COMMENT", length = 1000) private String customerComment;
     @Column(name = "APPROVED_AT") private LocalDateTime approvedAt;
     @Column(name = "PAID_AT") private LocalDateTime paidAt;
     @Column(name = "REJECTED_AT") private LocalDateTime rejectedAt;
@@ -43,7 +46,11 @@ public class Settlement {
     public BigDecimal getGrossAmount(){return grossAmount;} public void setGrossAmount(BigDecimal v){grossAmount=v;}
     public String getCurrencyCode(){return currencyCode;} public void setCurrencyCode(String v){currencyCode=v;}
     public SettlementStatus getStatus(){return status;} public void setStatus(SettlementStatus v){status=v;}
-    public LocalDateTime getRequestedAt(){return requestedAt;} public LocalDateTime getApprovedAt(){return approvedAt;} public void setApprovedAt(LocalDateTime v){approvedAt=v;}
+    public LocalDateTime getRequestedAt(){return requestedAt;}
+    public LocalDateTime getCustomerApprovedAt(){return customerApprovedAt;} public void setCustomerApprovedAt(LocalDateTime v){customerApprovedAt=v;}
+    public LocalDateTime getCustomerRejectedAt(){return customerRejectedAt;} public void setCustomerRejectedAt(LocalDateTime v){customerRejectedAt=v;}
+    public String getCustomerComment(){return customerComment;} public void setCustomerComment(String v){customerComment=v;}
+    public LocalDateTime getApprovedAt(){return approvedAt;} public void setApprovedAt(LocalDateTime v){approvedAt=v;}
     public LocalDateTime getPaidAt(){return paidAt;} public void setPaidAt(LocalDateTime v){paidAt=v;}
     public LocalDateTime getRejectedAt(){return rejectedAt;} public void setRejectedAt(LocalDateTime v){rejectedAt=v;}
     public String getAdminComment(){return adminComment;} public void setAdminComment(String v){adminComment=v;}
