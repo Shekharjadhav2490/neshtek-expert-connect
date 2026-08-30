@@ -3,10 +3,12 @@ package com.neshtek.expertconnect.service;
 import com.neshtek.expertconnect.dto.EngagementBillingSummaryResponse;
 import com.neshtek.expertconnect.dto.SettlementResponse;
 import com.neshtek.expertconnect.entity.Engagement;
+import com.neshtek.expertconnect.entity.Invoice;
 import com.neshtek.expertconnect.entity.Settlement;
 import com.neshtek.expertconnect.entity.SettlementStatus;
 import com.neshtek.expertconnect.exception.ResourceNotFoundException;
 import com.neshtek.expertconnect.repository.EngagementRepository;
+import com.neshtek.expertconnect.repository.InvoiceRepository;
 import com.neshtek.expertconnect.repository.SettlementRepository;
 import com.neshtek.expertconnect.security.ResourceAuthorizationService;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,13 +25,16 @@ import java.util.List;
 public class SettlementService {
     private final SettlementRepository settlements;
     private final EngagementRepository engagements;
+    private final InvoiceRepository invoices;
     private final BillingSummaryService billing;
     private final ResourceAuthorizationService authorization;
 
     public SettlementService(SettlementRepository settlements, EngagementRepository engagements,
-                             BillingSummaryService billing, ResourceAuthorizationService authorization) {
+                             InvoiceRepository invoices, BillingSummaryService billing,
+                             ResourceAuthorizationService authorization) {
         this.settlements = settlements;
         this.engagements = engagements;
+        this.invoices = invoices;
         this.billing = billing;
         this.authorization = authorization;
     }
@@ -82,6 +88,14 @@ public class SettlementService {
         if (settlements.existsByEngagementIdAndStatusIn(engagementId,
                 List.of(SettlementStatus.REQUESTED, SettlementStatus.CUSTOMER_APPROVED, SettlementStatus.APPROVED_FOR_PAYOUT)))
             throw new IllegalArgumentException("This engagement already has an open settlement request");
+
+        Invoice invoice = invoices.findFirstByEngagementIdOrderByCreatedAtDesc(engagementId)
+                .orElseThrow(() -> new IllegalArgumentException("A customer invoice must exist before requesting expert settlement"));
+        BigDecimal paidAmount = invoice.getPaidAmount() == null ? BigDecimal.ZERO : invoice.getPaidAmount();
+        if (paidAmount.compareTo(summary.approvedBilling()) < 0)
+            throw new IllegalArgumentException("Customer payment is insufficient for this settlement. Required "
+                    + summary.approvedBilling() + " " + summary.currencyCode() + ", received "
+                    + paidAmount + " " + invoice.getCurrencyCode());
 
         Settlement s = new Settlement();
         s.setEngagement(e);
