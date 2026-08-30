@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -71,7 +73,11 @@ public class ExpertReplacementService {
     @Transactional(readOnly=true)
     public List<ExpertReplacementResponse> pending() {
         requireAdmin();
-        return requests.findByStatusOrderByRequestedAtDesc(ExpertReplacementStatus.REQUESTED).stream().map(this::toResponse).toList();
+        List<ExpertReplacementResponse> result=new ArrayList<>();
+        result.addAll(requests.findByStatusOrderByRequestedAtDesc(ExpertReplacementStatus.REQUESTED).stream().map(this::toResponse).toList());
+        result.addAll(requests.findByStatusOrderByRequestedAtDesc(ExpertReplacementStatus.APPROVED).stream().map(this::toResponse).toList());
+        result.sort(Comparator.comparing(ExpertReplacementResponse::requestedAt).reversed());
+        return result;
     }
 
     @Transactional(readOnly=true)
@@ -111,85 +117,30 @@ public class ExpertReplacementService {
         if (remaining.signum()<=0) throw new IllegalArgumentException("No remaining engagement hours are available for replacement");
 
         ConsultationRequest replacementRequest=new ConsultationRequest();
-        replacementRequest.setCustomer(old.getCustomer());
-        replacementRequest.setRequirement(old.getRequirement());
-        replacementRequest.setExpert(newExpert);
+        replacementRequest.setCustomer(old.getCustomer()); replacementRequest.setRequirement(old.getRequirement()); replacementRequest.setExpert(newExpert);
         replacementRequest.setMessage("Replacement assignment for engagement #"+old.getId()+"; original expert: "+old.getExpert().getFirstName()+" "+old.getExpert().getLastName());
-        replacementRequest.setRequestedStartDate(old.getConsultationRequest().getRequestedStartDate());
-        replacementRequest.setEstimatedHours(remaining);
-        BigDecimal oldRate=old.getConsultationRequest().getProposedRate();
-        String oldCurrency=old.getConsultationRequest().getCurrencyCode();
+        replacementRequest.setRequestedStartDate(old.getConsultationRequest().getRequestedStartDate()); replacementRequest.setEstimatedHours(remaining);
+        BigDecimal oldRate=old.getConsultationRequest().getProposedRate(); String oldCurrency=old.getConsultationRequest().getCurrencyCode();
         replacementRequest.setProposedRate(oldRate!=null?oldRate:(newExpert.getConsulting()==null?null:newExpert.getConsulting().getHourlyRate()));
         replacementRequest.setCurrencyCode(oldCurrency!=null?oldCurrency:(newExpert.getConsulting()==null?"USD":newExpert.getConsulting().getCurrencyCode()));
-        replacementRequest.setStatus(ConsultationRequestStatus.ACCEPTED);
-        replacementRequest.setRespondedAt(LocalDateTime.now());
+        replacementRequest.setStatus(ConsultationRequestStatus.ACCEPTED); replacementRequest.setRespondedAt(LocalDateTime.now());
         ConsultationRequest savedRequest=consultationRequests.save(replacementRequest);
         Engagement newEngagement=engagementService.createFromAcceptedConsultation(savedRequest);
-        newEngagement.setReplacementOfEngagementId(old.getId());
-        engagements.save(newEngagement);
+        newEngagement.setReplacementOfEngagementId(old.getId()); engagements.save(newEngagement);
 
-        LocalDateTime now=LocalDateTime.now();
-        old.setStatus(EngagementStatus.REPLACED);
-        old.setReplacedByEngagementId(newEngagement.getId());
-        old.setCancelledAt(null);
-        engagements.save(old);
-
-        assignmentHistory.findByEngagementIdOrderByEffectiveFromDesc(old.getId()).stream()
-                .filter(h -> "ASSIGNED".equals(h.getAction()) && h.getEffectiveTo()==null).findFirst()
-                .ifPresent(h -> {h.setEffectiveTo(now); assignmentHistory.save(h);});
-
-        ExpertAssignmentHistory oldReplacementHistory=new ExpertAssignmentHistory();
-        oldReplacementHistory.setEngagement(old); oldReplacementHistory.setExpert(old.getExpert()); oldReplacementHistory.setAction("REPLACED");
-        oldReplacementHistory.setEffectiveFrom(now); oldReplacementHistory.setEffectiveTo(now);
-        oldReplacementHistory.setReason("Replaced by expert #"+newExpertId+" through replacement request #"+id);
-        oldReplacementHistory.setActor(authorization.currentUser()); assignmentHistory.save(oldReplacementHistory);
-
-        ExpertAssignmentHistory newHistory=new ExpertAssignmentHistory();
-        newHistory.setEngagement(newEngagement); newHistory.setExpert(newExpert); newHistory.setAction("ASSIGNED");
-        newHistory.setEffectiveFrom(now); newHistory.setReason("Replacement for engagement #"+old.getId()+"; request #"+id);
-        newHistory.setActor(authorization.currentUser()); assignmentHistory.save(newHistory);
-
-        r.setNewExpert(newExpert); r.setNewEngagementId(newEngagement.getId()); r.setStatus(ExpertReplacementStatus.REPLACED);
-        r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(now);
+        LocalDateTime now=LocalDateTime.now(); old.setStatus(EngagementStatus.REPLACED); old.setReplacedByEngagementId(newEngagement.getId()); old.setCancelledAt(null); engagements.save(old);
+        assignmentHistory.findByEngagementIdOrderByEffectiveFromDesc(old.getId()).stream().filter(h -> "ASSIGNED".equals(h.getAction()) && h.getEffectiveTo()==null).findFirst().ifPresent(h -> {h.setEffectiveTo(now); assignmentHistory.save(h);});
+        ExpertAssignmentHistory oldReplacementHistory=new ExpertAssignmentHistory(); oldReplacementHistory.setEngagement(old); oldReplacementHistory.setExpert(old.getExpert()); oldReplacementHistory.setAction("REPLACED"); oldReplacementHistory.setEffectiveFrom(now); oldReplacementHistory.setEffectiveTo(now); oldReplacementHistory.setReason("Replaced by expert #"+newExpertId+" through replacement request #"+id); oldReplacementHistory.setActor(authorization.currentUser()); assignmentHistory.save(oldReplacementHistory);
+        ExpertAssignmentHistory newHistory=new ExpertAssignmentHistory(); newHistory.setEngagement(newEngagement); newHistory.setExpert(newExpert); newHistory.setAction("ASSIGNED"); newHistory.setEffectiveFrom(now); newHistory.setReason("Replacement for engagement #"+old.getId()+"; request #"+id); newHistory.setActor(authorization.currentUser()); assignmentHistory.save(newHistory);
+        r.setNewExpert(newExpert); r.setNewEngagementId(newEngagement.getId()); r.setStatus(ExpertReplacementStatus.REPLACED); r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(now);
         return toResponse(requests.save(r));
     }
 
-    @Transactional
-    public ExpertReplacementResponse reject(Long id, String reason) {
-        requireAdmin();
-        if(reason==null || reason.isBlank()) throw new IllegalArgumentException("A rejection reason is required");
-        ExpertReplacementRequest r=find(id);
-        if(r.getStatus()!=ExpertReplacementStatus.REQUESTED) throw new IllegalArgumentException("Only REQUESTED replacement requests can be rejected");
-        r.setStatus(ExpertReplacementStatus.REJECTED); r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(LocalDateTime.now()); r.setReviewerComment(reason.trim());
-        return toResponse(requests.save(r));
-    }
-
-    @Transactional
-    public ExpertReplacementResponse cancel(Long id) {
-        ExpertReplacementRequest r=find(id);
-        authorization.assertCustomerOwns(r.getEngagement().getCustomer().getId());
-        if(r.getStatus()!=ExpertReplacementStatus.REQUESTED) throw new IllegalArgumentException("Only REQUESTED replacement requests can be cancelled");
-        r.setStatus(ExpertReplacementStatus.CANCELLED); r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(LocalDateTime.now());
-        return toResponse(requests.save(r));
-    }
-
-    private ExpertReplacementRequest find(Long id){ return requests.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Replacement request not found: "+id)); }
-    private Engagement findEngagement(Long id){ return engagements.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Engagement not found: "+id)); }
-    private void requireAdmin(){ if(!authorization.isAdmin()) throw new AccessDeniedException("Admin access required"); }
+    @Transactional public ExpertReplacementResponse reject(Long id,String reason){requireAdmin();if(reason==null||reason.isBlank())throw new IllegalArgumentException("A rejection reason is required");ExpertReplacementRequest r=find(id);if(r.getStatus()!=ExpertReplacementStatus.REQUESTED)throw new IllegalArgumentException("Only REQUESTED replacement requests can be rejected");r.setStatus(ExpertReplacementStatus.REJECTED);r.setReviewedBy(authorization.currentUser());r.setReviewedAt(LocalDateTime.now());r.setReviewerComment(reason.trim());return toResponse(requests.save(r));}
+    @Transactional public ExpertReplacementResponse cancel(Long id){ExpertReplacementRequest r=find(id);authorization.assertCustomerOwns(r.getEngagement().getCustomer().getId());if(r.getStatus()!=ExpertReplacementStatus.REQUESTED)throw new IllegalArgumentException("Only REQUESTED replacement requests can be cancelled");r.setStatus(ExpertReplacementStatus.CANCELLED);r.setReviewedBy(authorization.currentUser());r.setReviewedAt(LocalDateTime.now());return toResponse(requests.save(r));}
+    private ExpertReplacementRequest find(Long id){return requests.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Replacement request not found: "+id));}
+    private Engagement findEngagement(Long id){return engagements.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Engagement not found: "+id));}
+    private void requireAdmin(){if(!authorization.isAdmin())throw new AccessDeniedException("Admin access required");}
     private String blankToNull(String s){return s==null||s.isBlank()?null:s.trim();}
-
-    private ExpertReplacementResponse toResponse(ExpertReplacementRequest r){
-        EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());
-        BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId());
-        if(paid==null) paid=BigDecimal.ZERO;
-        BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();
-        BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO);
-        BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);
-        Long newExpertId=r.getNewExpert()==null?null:r.getNewExpert().getId();
-        String newExpertName=r.getNewExpert()==null?null:r.getNewExpert().getFirstName()+" "+r.getNewExpert().getLastName();
-        return new ExpertReplacementResponse(r.getId(),r.getEngagement().getId(),r.getEngagement().getRequirement().getId(),r.getEngagement().getRequirement().getTitle(),
-                r.getCurrentExpert().getId(),r.getCurrentExpert().getFirstName()+" "+r.getCurrentExpert().getLastName(),r.getStatus().name(),r.getReasonCode().name(),r.getComments(),
-                r.getRequestedAt(),r.getWorkCutoffAt(),r.getReviewedAt(),r.getReviewerComment(),b.approvedHours(),eligible,paid,balance,refund,b.currencyCode(),
-                newExpertId,newExpertName,r.getNewEngagementId());
-    }
+    private ExpertReplacementResponse toResponse(ExpertReplacementRequest r){EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId());if(paid==null)paid=BigDecimal.ZERO;BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO);BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);Long newExpertId=r.getNewExpert()==null?null:r.getNewExpert().getId();String newExpertName=r.getNewExpert()==null?null:r.getNewExpert().getFirstName()+" "+r.getNewExpert().getLastName();return new ExpertReplacementResponse(r.getId(),r.getEngagement().getId(),r.getEngagement().getRequirement().getId(),r.getEngagement().getRequirement().getTitle(),r.getCurrentExpert().getId(),r.getCurrentExpert().getFirstName()+" "+r.getCurrentExpert().getLastName(),r.getStatus().name(),r.getReasonCode().name(),r.getComments(),r.getRequestedAt(),r.getWorkCutoffAt(),r.getReviewedAt(),r.getReviewerComment(),b.approvedHours(),eligible,paid,balance,refund,b.currencyCode(),newExpertId,newExpertName,r.getNewEngagementId());}
 }
