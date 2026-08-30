@@ -35,6 +35,16 @@ public class EngagementController {
         return service.start(id);
     }
 
+    @PostMapping("/{id}/pause")
+    public EngagementResponse pause(@PathVariable Long id, @RequestParam String reason) {
+        return service.pause(id, reason);
+    }
+
+    @PostMapping("/{id}/resume")
+    public EngagementResponse resume(@PathVariable Long id) {
+        return service.resume(id);
+    }
+
     @PostMapping("/{id}/complete")
     public EngagementResponse complete(@PathVariable Long id) {
         return service.complete(id);
