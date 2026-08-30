@@ -41,12 +41,15 @@ export interface Engagement {
   expertName: string;
   requirementId: number;
   requirementTitle: string;
-  status: 'READY' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | string;
+  status: 'READY' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED' | string;
   requestedStartDate: string | null;
   estimatedHours: number | null;
   agreedRate: number | null;
   currencyCode: string | null;
   startedAt: string | null;
+  pausedAt: string | null;
+  resumedAt: string | null;
+  pauseReason: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
   createdAt: string;
@@ -72,9 +75,7 @@ export class ExpertService {
     return this.http.get<PageResponse<ExpertProfile>>(`${this.expertsUrl}?page=0&size=100`).pipe(
       map(page => {
         const expert = page.content.find(item => item.email?.toLowerCase() === email.toLowerCase());
-        if (!expert) {
-          throw new Error('Expert profile is not available for this account.');
-        }
+        if (!expert) throw new Error('Expert profile is not available for this account.');
         return expert;
       })
     );
@@ -98,6 +99,14 @@ export class ExpertService {
 
   startEngagement(id: number): Observable<Engagement> {
     return this.http.post<Engagement>(`${this.engagementUrl}/${id}/start`, {});
+  }
+
+  pauseEngagement(id: number, reason: string): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/pause?reason=${encodeURIComponent(reason)}`, {});
+  }
+
+  resumeEngagement(id: number): Observable<Engagement> {
+    return this.http.post<Engagement>(`${this.engagementUrl}/${id}/resume`, {});
   }
 
   completeEngagement(id: number): Observable<Engagement> {
