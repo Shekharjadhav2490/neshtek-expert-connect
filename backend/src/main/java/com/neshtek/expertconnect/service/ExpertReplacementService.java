@@ -22,6 +22,7 @@ public class ExpertReplacementService {
     private final EngagementRepository engagements;
     private final ExpertAssignmentHistoryRepository assignmentHistory;
     private final SettlementRepository settlements;
+    private final WorkLogRepository workLogs;
     private final BillingSummaryService billing;
     private final ResourceAuthorizationService authorization;
     private final ExpertRepository experts;
@@ -31,11 +32,12 @@ public class ExpertReplacementService {
 
     public ExpertReplacementService(ExpertReplacementRequestRepository requests, EngagementRepository engagements,
                                     ExpertAssignmentHistoryRepository assignmentHistory, SettlementRepository settlements,
-                                    BillingSummaryService billing, ResourceAuthorizationService authorization,
-                                    ExpertRepository experts, ConsultationRequestRepository consultationRequests,
-                                    EngagementService engagementService, ExpertMatchingService matchingService) {
+                                    WorkLogRepository workLogs, BillingSummaryService billing,
+                                    ResourceAuthorizationService authorization, ExpertRepository experts,
+                                    ConsultationRequestRepository consultationRequests, EngagementService engagementService,
+                                    ExpertMatchingService matchingService) {
         this.requests=requests; this.engagements=engagements; this.assignmentHistory=assignmentHistory;
-        this.settlements=settlements; this.billing=billing; this.authorization=authorization;
+        this.settlements=settlements; this.workLogs=workLogs; this.billing=billing; this.authorization=authorization;
         this.experts=experts; this.consultationRequests=consultationRequests; this.engagementService=engagementService;
         this.matchingService=matchingService;
     }
@@ -54,7 +56,7 @@ public class ExpertReplacementService {
         r.setReasonCode(dto.reasonCode()); r.setComments(dto.comments().trim()); r.setStatus(ExpertReplacementStatus.REQUESTED);
         r.setWorkCutoffAt(LocalDateTime.now());
         ExpertReplacementRequest saved=requests.save(r);
-        var h=new ExpertAssignmentHistory();
+        ExpertAssignmentHistory h=new ExpertAssignmentHistory();
         h.setEngagement(e); h.setExpert(e.getExpert()); h.setAction("REPLACEMENT_REQUESTED"); h.setEffectiveFrom(saved.getRequestedAt());
         h.setReason(dto.reasonCode().name()+": "+dto.comments().trim()); h.setActor(actor); assignmentHistory.save(h);
         return toResponse(saved);
@@ -78,10 +80,8 @@ public class ExpertReplacementService {
         ExpertReplacementRequest r=find(id);
         if (r.getStatus()!=ExpertReplacementStatus.APPROVED)
             throw new IllegalArgumentException("Expert matches are available only after the replacement request is approved");
-        int safeLimit=Math.min(Math.max(limit,1),20);
-        return matchingService.findMatches(r.getEngagement().getRequirement().getId(), safeLimit).stream()
-                .filter(m -> !m.expertId().equals(r.getCurrentExpert().getId()))
-                .toList();
+        return matchingService.findMatches(r.getEngagement().getRequirement().getId(), Math.min(Math.max(limit,1),20)).stream()
+                .filter(m -> !m.expertId().equals(r.getCurrentExpert().getId())).toList();
     }
 
     @Transactional
@@ -106,10 +106,8 @@ public class ExpertReplacementService {
         if (newExpert.getStatus()!=ExpertStatus.ACTIVE) throw new IllegalArgumentException("Replacement expert must be ACTIVE");
 
         BigDecimal estimated=old.getConsultationRequest().getEstimatedHours()==null?BigDecimal.ZERO:old.getConsultationRequest().getEstimatedHours();
-        BigDecimal logged=old.getConsultationRequest().getEstimatedHours()==null?BigDecimal.ZERO:new com.neshtek.expertconnect.repository.WorkLogRepository(){};
-        // Remaining capacity is calculated from the persisted work-log totals below.
-        BigDecimal loggedHours = getLoggedHours(old.getId());
-        BigDecimal remaining=estimated.subtract(loggedHours).max(BigDecimal.ZERO);
+        BigDecimal logged=workLogs.sumHoursByEngagementId(old.getId());
+        BigDecimal remaining=estimated.subtract(logged).max(BigDecimal.ZERO);
         if (remaining.signum()<=0) throw new IllegalArgumentException("No remaining engagement hours are available for replacement");
 
         ConsultationRequest replacementRequest=new ConsultationRequest();
@@ -119,10 +117,10 @@ public class ExpertReplacementService {
         replacementRequest.setMessage("Replacement assignment for engagement #"+old.getId()+"; original expert: "+old.getExpert().getFirstName()+" "+old.getExpert().getLastName());
         replacementRequest.setRequestedStartDate(old.getConsultationRequest().getRequestedStartDate());
         replacementRequest.setEstimatedHours(remaining);
-        BigDecimal preservedRate=old.getConsultationRequest().getProposedRate();
-        String preservedCurrency=old.getConsultationRequest().getCurrencyCode();
-        replacementRequest.setProposedRate(preservedRate!=null?preservedRate:(newExpert.getConsulting()==null?null:newExpert.getConsulting().getHourlyRate()));
-        replacementRequest.setCurrencyCode(preservedCurrency!=null?preservedCurrency:(newExpert.getConsulting()==null?"USD":newExpert.getConsulting().getCurrencyCode()));
+        BigDecimal oldRate=old.getConsultationRequest().getProposedRate();
+        String oldCurrency=old.getConsultationRequest().getCurrencyCode();
+        replacementRequest.setProposedRate(oldRate!=null?oldRate:(newExpert.getConsulting()==null?null:newExpert.getConsulting().getHourlyRate()));
+        replacementRequest.setCurrencyCode(oldCurrency!=null?oldCurrency:(newExpert.getConsulting()==null?"USD":newExpert.getConsulting().getCurrencyCode()));
         replacementRequest.setStatus(ConsultationRequestStatus.ACCEPTED);
         replacementRequest.setRespondedAt(LocalDateTime.now());
         ConsultationRequest savedRequest=consultationRequests.save(replacementRequest);
@@ -136,13 +134,15 @@ public class ExpertReplacementService {
         old.setCancelledAt(null);
         engagements.save(old);
 
-        List<ExpertAssignmentHistory> oldHistory=assignmentHistory.findByEngagementIdOrderByEffectiveFromDesc(old.getId());
-        oldHistory.stream().filter(h -> "ASSIGNED".equals(h.getAction()) && h.getEffectiveTo()==null).findFirst().ifPresent(h -> {h.setEffectiveTo(now); assignmentHistory.save(h);});
-        ExpertAssignmentHistory replacementHistory=new ExpertAssignmentHistory();
-        replacementHistory.setEngagement(old); replacementHistory.setExpert(old.getExpert()); replacementHistory.setAction("REPLACED");
-        replacementHistory.setEffectiveFrom(now); replacementHistory.setEffectiveTo(now);
-        replacementHistory.setReason("Replaced by expert #"+newExpertId+" through replacement request #"+id);
-        replacementHistory.setActor(authorization.currentUser()); assignmentHistory.save(replacementHistory);
+        assignmentHistory.findByEngagementIdOrderByEffectiveFromDesc(old.getId()).stream()
+                .filter(h -> "ASSIGNED".equals(h.getAction()) && h.getEffectiveTo()==null).findFirst()
+                .ifPresent(h -> {h.setEffectiveTo(now); assignmentHistory.save(h);});
+
+        ExpertAssignmentHistory oldReplacementHistory=new ExpertAssignmentHistory();
+        oldReplacementHistory.setEngagement(old); oldReplacementHistory.setExpert(old.getExpert()); oldReplacementHistory.setAction("REPLACED");
+        oldReplacementHistory.setEffectiveFrom(now); oldReplacementHistory.setEffectiveTo(now);
+        oldReplacementHistory.setReason("Replaced by expert #"+newExpertId+" through replacement request #"+id);
+        oldReplacementHistory.setActor(authorization.currentUser()); assignmentHistory.save(oldReplacementHistory);
 
         ExpertAssignmentHistory newHistory=new ExpertAssignmentHistory();
         newHistory.setEngagement(newEngagement); newHistory.setExpert(newExpert); newHistory.setAction("ASSIGNED");
@@ -151,7 +151,6 @@ public class ExpertReplacementService {
 
         r.setNewExpert(newExpert); r.setNewEngagementId(newEngagement.getId()); r.setStatus(ExpertReplacementStatus.REPLACED);
         r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(now);
-        r.setReviewerComment(blankToNull(r.getReviewerComment()));
         return toResponse(requests.save(r));
     }
 
@@ -172,15 +171,6 @@ public class ExpertReplacementService {
         if(r.getStatus()!=ExpertReplacementStatus.REQUESTED) throw new IllegalArgumentException("Only REQUESTED replacement requests can be cancelled");
         r.setStatus(ExpertReplacementStatus.CANCELLED); r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(LocalDateTime.now());
         return toResponse(requests.save(r));
-    }
-
-    private BigDecimal getLoggedHours(Long engagementId) {
-        // Uses the repository aggregate without exposing it in the replacement API.
-        return new WorkLogHoursAccessor().sum(engagements, engagementId);
-    }
-
-    private static class WorkLogHoursAccessor {
-        BigDecimal sum(EngagementRepository repository, Long engagementId) { return BigDecimal.ZERO; }
     }
 
     private ExpertReplacementRequest find(Long id){ return requests.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Replacement request not found: "+id)); }
