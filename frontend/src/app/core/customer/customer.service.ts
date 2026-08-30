@@ -101,6 +101,7 @@ export class CustomerService {
   getRequirements(customerId: number): Observable<PageResponse<CustomerRequirement>> { return this.http.get<PageResponse<CustomerRequirement>>(`${this.apiUrl}/${customerId}/requirements?page=0&size=20`); }
   getRequirement(requirementId: number): Observable<CustomerRequirement> { return this.http.get<CustomerRequirement>(`${this.requirementsUrl}/${requirementId}`); }
   createRequirement(request: CustomerRequirementRequest): Observable<CustomerRequirement> { return this.http.post<CustomerRequirement>(this.requirementsUrl, request); }
+  updateRequirement(requirementId: number, request: CustomerRequirementRequest): Observable<CustomerRequirement> { return this.http.put<CustomerRequirement>(`${this.requirementsUrl}/${requirementId}`, request); }
   deleteRequirement(requirementId: number): Observable<void> { return this.http.delete<void>(`${this.requirementsUrl}/${requirementId}`); }
   getEngagements(customerId: number): Observable<PageResponse<CustomerEngagement>> { return this.http.get<PageResponse<CustomerEngagement>>(`${this.engagementsUrl}/customers/${customerId}?page=0&size=20`); }
 }
