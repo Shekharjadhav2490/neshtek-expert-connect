@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/auth/auth.service';
 import { Invoice, InvoiceService } from '../core/billing/invoice.service';
 import { AdminService, AdminEngagement } from '../core/admin/admin.service';
 
-@Component({selector:'app-admin-invoices',standalone:true,imports:[CommonModule,DatePipe,DecimalPipe,RouterLink],template:`
+@Component({selector:'app-admin-invoices',standalone:true,imports:[CommonModule,DatePipe,DecimalPipe,RouterLink,FormsModule],template:`
 <main class="page"><header class="topbar"><div><b>NeshTek Expert Connect</b><div class="sub">Administration · Invoices</div></div><div class="actions"><a routerLink="/admin/dashboard">Dashboard</a><button (click)="logout()">Sign out</button></div></header>
 <section class="hero"><div><div class="eyebrow">Billing operations</div><h1>Invoices</h1><p>Generate, issue and manage customer invoices from approved engagement billing.</p></div><button class="refresh" (click)="load()" [disabled]="loading">{{loading?'Refreshing…':'Refresh'}}</button></section>
 @if(error){<div class="error">{{error}}</div>}
