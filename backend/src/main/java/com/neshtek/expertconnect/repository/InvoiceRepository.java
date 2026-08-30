@@ -12,4 +12,5 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
  Page<Invoice> findByCustomerId(Long customerId, Pageable pageable);
  Page<Invoice> findByStatus(InvoiceStatus status, Pageable pageable);
  boolean existsByEngagementId(Long engagementId);
+ Optional<Invoice> findFirstByEngagementIdOrderByCreatedAtDesc(Long engagementId);
 }
