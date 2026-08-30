@@ -22,6 +22,7 @@ public interface EngagementRepository extends JpaRepository<Engagement, Long> {
     Page<Engagement> findByExpertIdOrderByCreatedAtDesc(Long expertId, Pageable pageable);
 
     boolean existsByConsultationRequestId(Long consultationRequestId);
+    boolean existsByRequirementId(Long requirementId);
 
     @EntityGraph(attributePaths = {"consultationRequest", "customer", "expert", "requirement"})
     Page<Engagement> findAllByOrderByCreatedAtDesc(Pageable pageable);
