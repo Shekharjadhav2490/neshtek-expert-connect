@@ -97,6 +97,10 @@ export class ExpertService {
     return this.http.get<PageResponse<Engagement>>(`${this.engagementUrl}/experts/${expertId}?page=0&size=20`);
   }
 
+  getEngagement(id: number): Observable<Engagement> {
+    return this.http.get<Engagement>(`${this.engagementUrl}/${id}`);
+  }
+
   startEngagement(id: number): Observable<Engagement> {
     return this.http.post<Engagement>(`${this.engagementUrl}/${id}/start`, {});
   }
