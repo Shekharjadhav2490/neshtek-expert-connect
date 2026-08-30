@@ -8,5 +8,6 @@ public record ExpertReplacementResponse(
         Long expertId, String expertName, String status, String reasonCode, String comments,
         LocalDateTime requestedAt, LocalDateTime workCutoffAt, LocalDateTime reviewedAt,
         String reviewerComment, BigDecimal approvedHours, BigDecimal eligibleAmount,
-        BigDecimal paidAmount, BigDecimal balanceDue, BigDecimal refundOrCreditDue, String currencyCode
+        BigDecimal paidAmount, BigDecimal balanceDue, BigDecimal refundOrCreditDue, String currencyCode,
+        Long newExpertId, String newExpertName, Long newEngagementId
 ) {}
