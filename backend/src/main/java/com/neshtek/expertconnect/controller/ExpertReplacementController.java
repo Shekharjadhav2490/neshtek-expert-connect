@@ -1,5 +1,6 @@
 package com.neshtek.expertconnect.controller;
 
+import com.neshtek.expertconnect.dto.ExpertMatchResponse;
 import com.neshtek.expertconnect.dto.ExpertReplacementRequestDto;
 import com.neshtek.expertconnect.dto.ExpertReplacementResponse;
 import com.neshtek.expertconnect.service.ExpertReplacementService;
@@ -16,9 +17,7 @@ public class ExpertReplacementController {
 
     @PostMapping("/engagements/{engagementId}")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ExpertReplacementResponse request(@PathVariable Long engagementId, @Valid @RequestBody ExpertReplacementRequestDto request){
-        return service.request(engagementId, request);
-    }
+    public ExpertReplacementResponse request(@PathVariable Long engagementId, @Valid @RequestBody ExpertReplacementRequestDto request){return service.request(engagementId, request);}
 
     @GetMapping("/engagements/{engagementId}")
     public List<ExpertReplacementResponse> byEngagement(@PathVariable Long engagementId){return service.byEngagement(engagementId);}
@@ -27,9 +26,17 @@ public class ExpertReplacementController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<ExpertReplacementResponse> pending(){return service.pending();}
 
+    @GetMapping("/{id}/matches")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ExpertMatchResponse> matches(@PathVariable Long id,@RequestParam(defaultValue="5") int limit){return service.matches(id,limit);}
+
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ExpertReplacementResponse approve(@PathVariable Long id,@RequestParam(required=false) String comment){return service.approve(id,comment);}
+
+    @PostMapping("/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ExpertReplacementResponse assign(@PathVariable Long id,@RequestParam Long newExpertId){return service.assign(id,newExpertId);}
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('ADMIN')")
