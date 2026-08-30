@@ -7,6 +7,7 @@ export interface ExpertReplacement {
   expertId:number; expertName:string; status:string; reasonCode:string; comments:string;
   requestedAt:string; workCutoffAt:string; reviewedAt:string|null; reviewerComment:string|null;
   approvedHours:number; eligibleAmount:number; paidAmount:number; balanceDue:number; refundOrCreditDue:number; currencyCode:string;
+  financialResolutionStatus:string; financialResolutionAction:string|null; financialResolutionAmount:number|null; financialResolutionNote:string|null; financialResolvedAt:string|null;
   newExpertId:number|null; newExpertName:string|null; newEngagementId:number|null;
 }
 
@@ -29,5 +30,6 @@ export class ExpertReplacementService {
   reject(id:number,reason:string):Observable<ExpertReplacement>{return this.http.post<ExpertReplacement>(`${this.base}/${id}/reject`,{}, {params:new HttpParams().set('reason',reason)});}
   cancel(id:number):Observable<ExpertReplacement>{return this.http.post<ExpertReplacement>(`${this.base}/${id}/cancel`,{});}
   matches(id:number,limit=10):Observable<ExpertMatch[]>{return this.http.get<ExpertMatch[]>(`${this.base}/${id}/matches`,{params:new HttpParams().set('limit',limit)});}
+  resolveFinancial(id:number,action:string,amount:number,note:string):Observable<ExpertReplacement>{let params=new HttpParams().set('action',action).set('amount',amount);if(note)params=params.set('note',note);return this.http.post<ExpertReplacement>(`${this.base}/${id}/financial-resolution`,{}, {params});}
   assign(id:number,newExpertId:number):Observable<ExpertReplacement>{return this.http.post<ExpertReplacement>(`${this.base}/${id}/assign`,{}, {params:new HttpParams().set('newExpertId',newExpertId)});}
 }
