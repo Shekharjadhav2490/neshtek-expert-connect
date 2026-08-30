@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { ExpertReplacement, ExpertReplacementService } from '../core/replacement/expert-replacement.service';
 
-@Component({selector:'app-customer-expert-replacement',standalone:true,imports:[CommonModule,DatePipe],template:`
+@Component({selector:'app-customer-expert-replacement',standalone:true,imports:[CommonModule,DatePipe,FormsModule],template:`
 <main class="page"><header class="topbar"><div><div class="brand">NeshTek Expert Connect</div><div class="subtitle">Customer · Expert replacement</div></div><div class="top-actions"><button (click)="back()">Dashboard</button><button (click)="logout()">Sign out</button></div></header>
 <section class="hero"><div class="eyebrow">Engagement #{{engagementId}}</div><h1>Request an expert replacement</h1><p>Your existing work and payments are preserved. While the request is being reviewed, new or changed work logs are frozen.</p></section>
 @if(error){<div class="error">{{error}}</div>}
