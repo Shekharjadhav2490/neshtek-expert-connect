@@ -14,4 +14,5 @@ public interface ConsultationRequestRepository extends JpaRepository<Consultatio
 
     Page<ConsultationRequest> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
     Page<ConsultationRequest> findByExpertIdOrderByCreatedAtDesc(Long expertId, Pageable pageable);
+    boolean existsByRequirementId(Long requirementId);
 }
