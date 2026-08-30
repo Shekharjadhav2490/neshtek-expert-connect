@@ -8,15 +8,18 @@ import com.neshtek.expertconnect.entity.*;
 import com.neshtek.expertconnect.exception.ResourceNotFoundException;
 import com.neshtek.expertconnect.repository.*;
 import com.neshtek.expertconnect.security.ResourceAuthorizationService;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ExpertReplacementService {
@@ -31,17 +34,18 @@ public class ExpertReplacementService {
     private final ConsultationRequestRepository consultationRequests;
     private final EngagementService engagementService;
     private final ExpertMatchingService matchingService;
+    private final JdbcTemplate jdbc;
 
     public ExpertReplacementService(ExpertReplacementRequestRepository requests, EngagementRepository engagements,
                                     ExpertAssignmentHistoryRepository assignmentHistory, SettlementRepository settlements,
                                     WorkLogRepository workLogs, BillingSummaryService billing,
                                     ResourceAuthorizationService authorization, ExpertRepository experts,
                                     ConsultationRequestRepository consultationRequests, EngagementService engagementService,
-                                    ExpertMatchingService matchingService) {
+                                    ExpertMatchingService matchingService, JdbcTemplate jdbc) {
         this.requests=requests; this.engagements=engagements; this.assignmentHistory=assignmentHistory;
         this.settlements=settlements; this.workLogs=workLogs; this.billing=billing; this.authorization=authorization;
         this.experts=experts; this.consultationRequests=consultationRequests; this.engagementService=engagementService;
-        this.matchingService=matchingService;
+        this.matchingService=matchingService; this.jdbc=jdbc;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class ExpertReplacementService {
         r.setReasonCode(dto.reasonCode()); r.setComments(dto.comments().trim()); r.setStatus(ExpertReplacementStatus.REQUESTED);
         r.setWorkCutoffAt(LocalDateTime.now());
         ExpertReplacementRequest saved=requests.save(r);
+        refreshReconciliation(saved);
         ExpertAssignmentHistory h=new ExpertAssignmentHistory();
         h.setEngagement(e); h.setExpert(e.getExpert()); h.setAction("REPLACEMENT_REQUESTED"); h.setEffectiveFrom(saved.getRequestedAt());
         h.setReason(dto.reasonCode().name()+": "+dto.comments().trim()); h.setActor(actor); assignmentHistory.save(h);
@@ -94,9 +99,35 @@ public class ExpertReplacementService {
     public ExpertReplacementResponse approve(Long id, String comment) {
         requireAdmin(); ExpertReplacementRequest r=find(id);
         if(r.getStatus()!=ExpertReplacementStatus.REQUESTED) throw new IllegalArgumentException("Only REQUESTED replacement requests can be approved");
+        refreshReconciliation(r);
         r.setStatus(ExpertReplacementStatus.APPROVED); r.setReviewedBy(authorization.currentUser()); r.setReviewedAt(LocalDateTime.now());
         r.setReviewerComment(blankToNull(comment));
         return toResponse(requests.save(r));
+    }
+
+    @Transactional
+    public ExpertReplacementResponse resolveFinancial(Long id, String action, BigDecimal amount, String note) {
+        requireAdmin();
+        ExpertReplacementRequest r=find(id);
+        if (r.getStatus()!=ExpertReplacementStatus.APPROVED)
+            throw new IllegalArgumentException("Financial treatment can only be resolved after replacement approval");
+        String normalized=action==null?"":action.trim().toUpperCase();
+        List<String> allowed=List.of("NO_ADJUSTMENT","REFUND_CUSTOMER","CUSTOMER_CREDIT","BALANCE_DUE","MANUAL_REVIEW");
+        if(!allowed.contains(normalized)) throw new IllegalArgumentException("Invalid financial resolution action");
+        EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());
+        BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId()); if(paid==null) paid=BigDecimal.ZERO;
+        BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();
+        BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO); BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);
+        BigDecimal resolvedAmount=amount==null?BigDecimal.ZERO:amount.max(BigDecimal.ZERO);
+        if(normalized.equals("NO_ADJUSTMENT")||normalized.equals("MANUAL_REVIEW")) resolvedAmount=BigDecimal.ZERO;
+        if((normalized.equals("REFUND_CUSTOMER")||normalized.equals("CUSTOMER_CREDIT")) && resolvedAmount.compareTo(refund)>0)
+            throw new IllegalArgumentException("Refund/credit cannot exceed the calculated refund or credit due: "+refund);
+        if(normalized.equals("BALANCE_DUE") && resolvedAmount.compareTo(balance)>0)
+            throw new IllegalArgumentException("Balance due cannot exceed the calculated balance due: "+balance);
+        ensureReconciliation(r);
+        jdbc.update("UPDATE REPLACEMENT_FINANCIAL_RECONCILIATION SET RESOLUTION_STATUS='RESOLVED', RESOLUTION_ACTION=?, RESOLUTION_AMOUNT=?, RESOLUTION_NOTE=?, RESOLVED_AT=CURRENT_TIMESTAMP, RESOLVED_BY_USER_ID=? WHERE REPLACEMENT_REQUEST_ID=?",
+                normalized, resolvedAmount, blankToNull(note), authorization.currentUser().getId(), id);
+        return toResponse(r);
     }
 
     @Transactional
@@ -106,6 +137,11 @@ public class ExpertReplacementService {
         ExpertReplacementRequest r=find(id);
         if (r.getStatus()!=ExpertReplacementStatus.APPROVED) throw new IllegalArgumentException("Only APPROVED replacement requests can be assigned");
         if (r.getNewEngagementId()!=null) throw new IllegalArgumentException("This replacement request has already been assigned");
+        Map<String,Object> financial=financialData(r.getId());
+        if(!"RESOLVED".equals(String.valueOf(financial.getOrDefault("RESOLUTION_STATUS","PENDING_REVIEW"))))
+            throw new IllegalArgumentException("Resolve the financial treatment before assigning the replacement expert");
+        if("MANUAL_REVIEW".equals(financial.get("RESOLUTION_ACTION")))
+            throw new IllegalArgumentException("Financial treatment is marked MANUAL_REVIEW and must be completed before assignment");
         Engagement old=r.getEngagement();
         if (newExpertId.equals(old.getExpert().getId())) throw new IllegalArgumentException("The replacement expert must be different from the current expert");
         Expert newExpert=experts.findById(newExpertId).orElseThrow(()->new ResourceNotFoundException("Expert not found: "+newExpertId));
@@ -142,5 +178,42 @@ public class ExpertReplacementService {
     private Engagement findEngagement(Long id){return engagements.findWithDetailsById(id).orElseThrow(()->new ResourceNotFoundException("Engagement not found: "+id));}
     private void requireAdmin(){if(!authorization.isAdmin())throw new AccessDeniedException("Admin access required");}
     private String blankToNull(String s){return s==null||s.isBlank()?null:s.trim();}
-    private ExpertReplacementResponse toResponse(ExpertReplacementRequest r){EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId());if(paid==null)paid=BigDecimal.ZERO;BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO);BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);Long newExpertId=r.getNewExpert()==null?null:r.getNewExpert().getId();String newExpertName=r.getNewExpert()==null?null:r.getNewExpert().getFirstName()+" "+r.getNewExpert().getLastName();return new ExpertReplacementResponse(r.getId(),r.getEngagement().getId(),r.getEngagement().getRequirement().getId(),r.getEngagement().getRequirement().getTitle(),r.getCurrentExpert().getId(),r.getCurrentExpert().getFirstName()+" "+r.getCurrentExpert().getLastName(),r.getStatus().name(),r.getReasonCode().name(),r.getComments(),r.getRequestedAt(),r.getWorkCutoffAt(),r.getReviewedAt(),r.getReviewerComment(),b.approvedHours(),eligible,paid,balance,refund,b.currencyCode(),newExpertId,newExpertName,r.getNewEngagementId());}
+
+    private void refreshReconciliation(ExpertReplacementRequest r){
+        EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());
+        BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId()); if(paid==null)paid=BigDecimal.ZERO;
+        BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();
+        BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO); BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);
+        ensureReconciliation(r);
+        jdbc.update("UPDATE REPLACEMENT_FINANCIAL_RECONCILIATION SET APPROVED_HOURS=?, ELIGIBLE_AMOUNT=?, PAID_AMOUNT=?, BALANCE_DUE=?, REFUND_OR_CREDIT_DUE=?, CURRENCY_CODE=?, CALCULATED_AT=CURRENT_TIMESTAMP WHERE REPLACEMENT_REQUEST_ID=?",
+                b.approvedHours(),eligible,paid,balance,refund,b.currencyCode(),r.getId());
+    }
+
+    private void ensureReconciliation(ExpertReplacementRequest r){
+        Integer count=jdbc.queryForObject("SELECT COUNT(*) FROM REPLACEMENT_FINANCIAL_RECONCILIATION WHERE REPLACEMENT_REQUEST_ID=?",Integer.class,r.getId());
+        if(count==null||count==0){
+            EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());
+            BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId()); if(paid==null)paid=BigDecimal.ZERO;
+            BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();
+            jdbc.update("INSERT INTO REPLACEMENT_FINANCIAL_RECONCILIATION (REPLACEMENT_REQUEST_ID,APPROVED_HOURS,ELIGIBLE_AMOUNT,PAID_AMOUNT,BALANCE_DUE,REFUND_OR_CREDIT_DUE,CURRENCY_CODE,RESOLUTION_STATUS) VALUES (?,?,?,?,?,?,?,'PENDING_REVIEW')",
+                    r.getId(),b.approvedHours(),eligible,paid,eligible.subtract(paid).max(BigDecimal.ZERO),paid.subtract(eligible).max(BigDecimal.ZERO),b.currencyCode());
+        }
+    }
+
+    private Map<String,Object> financialData(Long requestId){
+        List<Map<String,Object>> rows=jdbc.queryForList("SELECT RESOLUTION_STATUS,RESOLUTION_ACTION,RESOLUTION_AMOUNT,RESOLUTION_NOTE,RESOLVED_AT FROM REPLACEMENT_FINANCIAL_RECONCILIATION WHERE REPLACEMENT_REQUEST_ID=?",requestId);
+        return rows.isEmpty()?Map.of("RESOLUTION_STATUS","PENDING_REVIEW"):rows.get(0);
+    }
+
+    private ExpertReplacementResponse toResponse(ExpertReplacementRequest r){
+        EngagementBillingSummaryResponse b=billing.get(r.getEngagement().getId());
+        BigDecimal paid=settlements.sumPaidAmountByEngagementId(r.getEngagement().getId());if(paid==null)paid=BigDecimal.ZERO;
+        BigDecimal eligible=b.approvedBilling()==null?BigDecimal.ZERO:b.approvedBilling();BigDecimal balance=eligible.subtract(paid).max(BigDecimal.ZERO);BigDecimal refund=paid.subtract(eligible).max(BigDecimal.ZERO);
+        Map<String,Object> f=financialData(r.getId());
+        String resolutionStatus=String.valueOf(f.getOrDefault("RESOLUTION_STATUS","PENDING_REVIEW"));
+        String resolutionAction=(String)f.get("RESOLUTION_ACTION"); BigDecimal resolutionAmount=(BigDecimal)f.get("RESOLUTION_AMOUNT"); String resolutionNote=(String)f.get("RESOLUTION_NOTE");
+        Object resolved=f.get("RESOLVED_AT"); LocalDateTime resolvedAt=resolved instanceof Timestamp t?t.toLocalDateTime():resolved instanceof java.sql.Date d?d.toLocalDate().atStartOfDay():null;
+        Long newExpertId=r.getNewExpert()==null?null:r.getNewExpert().getId();String newExpertName=r.getNewExpert()==null?null:r.getNewExpert().getFirstName()+" "+r.getNewExpert().getLastName();
+        return new ExpertReplacementResponse(r.getId(),r.getEngagement().getId(),r.getEngagement().getRequirement().getId(),r.getEngagement().getRequirement().getTitle(),r.getCurrentExpert().getId(),r.getCurrentExpert().getFirstName()+" "+r.getCurrentExpert().getLastName(),r.getStatus().name(),r.getReasonCode().name(),r.getComments(),r.getRequestedAt(),r.getWorkCutoffAt(),r.getReviewedAt(),r.getReviewerComment(),b.approvedHours(),eligible,paid,balance,refund,b.currencyCode(),resolutionStatus,resolutionAction,resolutionAmount,resolutionNote,resolvedAt,newExpertId,newExpertName,r.getNewEngagementId());
+    }
 }
