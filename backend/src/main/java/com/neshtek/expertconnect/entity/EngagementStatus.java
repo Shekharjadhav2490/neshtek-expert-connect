@@ -5,5 +5,6 @@ public enum EngagementStatus {
     ACTIVE,
     PAUSED,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    REPLACED
 }
