@@ -40,6 +40,22 @@ public class SettlementService {
     }
 
     @Transactional(readOnly = true)
+    public Page<SettlementResponse> byCustomer(Long customerId, Pageable pageable) {
+        authorization.assertCustomerOwns(customerId);
+        return settlements.findByEngagementCustomerIdOrderByCreatedAtDesc(customerId, pageable).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public SettlementResponse byEngagement(Long engagementId) {
+        Engagement engagement = engagements.findWithDetailsById(engagementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Engagement not found: " + engagementId));
+        authorization.assertCanAccess(engagement);
+        return settlements.findFirstByEngagementIdOrderByCreatedAtDesc(engagementId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("No settlement found for engagement: " + engagementId));
+    }
+
+    @Transactional(readOnly = true)
     public Page<SettlementResponse> all(Pageable pageable) {
         if (!authorization.isAdmin()) throw new AccessDeniedException("Admin access required");
         return settlements.findAllByOrderByCreatedAtDesc(pageable).map(this::toResponse);
@@ -64,7 +80,7 @@ public class SettlementService {
         if (summary.approvedBilling() == null || summary.approvedBilling().signum() <= 0)
             throw new IllegalArgumentException("Settlement can only be requested when approved earnings are greater than zero");
         if (settlements.existsByEngagementIdAndStatusIn(engagementId,
-                List.of(SettlementStatus.REQUESTED, SettlementStatus.APPROVED_FOR_PAYOUT)))
+                List.of(SettlementStatus.REQUESTED, SettlementStatus.CUSTOMER_APPROVED, SettlementStatus.APPROVED_FOR_PAYOUT)))
             throw new IllegalArgumentException("This engagement already has an open settlement request");
 
         Settlement s = new Settlement();
@@ -79,11 +95,36 @@ public class SettlementService {
     }
 
     @Transactional
+    public SettlementResponse customerApprove(Long id, String comment) {
+        Settlement s = find(id);
+        authorization.assertCustomerOwns(s.getEngagement().getCustomer().getId());
+        if (s.getStatus() != SettlementStatus.REQUESTED)
+            throw new IllegalArgumentException("Only REQUESTED settlements can be approved by the customer");
+        s.setStatus(SettlementStatus.CUSTOMER_APPROVED);
+        s.setCustomerApprovedAt(LocalDateTime.now());
+        s.setCustomerComment(blankToNull(comment));
+        return toResponse(settlements.save(s));
+    }
+
+    @Transactional
+    public SettlementResponse customerReject(Long id, String reason) {
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("A rejection reason is required");
+        Settlement s = find(id);
+        authorization.assertCustomerOwns(s.getEngagement().getCustomer().getId());
+        if (s.getStatus() != SettlementStatus.REQUESTED)
+            throw new IllegalArgumentException("Only REQUESTED settlements can be rejected by the customer");
+        s.setStatus(SettlementStatus.REJECTED);
+        s.setCustomerRejectedAt(LocalDateTime.now());
+        s.setCustomerComment(reason.trim());
+        return toResponse(settlements.save(s));
+    }
+
+    @Transactional
     public SettlementResponse approve(Long id, String comment) {
         requireAdmin();
         Settlement s = find(id);
-        if (s.getStatus() != SettlementStatus.REQUESTED)
-            throw new IllegalArgumentException("Only REQUESTED settlements can be approved");
+        if (s.getStatus() != SettlementStatus.CUSTOMER_APPROVED)
+            throw new IllegalArgumentException("Only CUSTOMER_APPROVED settlements can be approved for payout");
         s.setStatus(SettlementStatus.APPROVED_FOR_PAYOUT);
         s.setApprovedAt(LocalDateTime.now());
         s.setAdminComment(blankToNull(comment));
@@ -95,8 +136,8 @@ public class SettlementService {
         requireAdmin();
         if (reason == null || reason.isBlank()) throw new IllegalArgumentException("A rejection reason is required");
         Settlement s = find(id);
-        if (s.getStatus() != SettlementStatus.REQUESTED)
-            throw new IllegalArgumentException("Only REQUESTED settlements can be rejected");
+        if (s.getStatus() != SettlementStatus.CUSTOMER_APPROVED && s.getStatus() != SettlementStatus.REQUESTED)
+            throw new IllegalArgumentException("Only REQUESTED or CUSTOMER_APPROVED settlements can be rejected");
         s.setStatus(SettlementStatus.REJECTED);
         s.setRejectedAt(LocalDateTime.now());
         s.setAdminComment(reason.trim());
@@ -134,7 +175,8 @@ public class SettlementService {
         return new SettlementResponse(s.getId(), e.getId(), s.getExpert().getId(), expertName,
                 e.getCustomer().getId(), e.getCustomer().getCompanyName(), e.getRequirement().getTitle(),
                 s.getApprovedHours(), s.getHourlyRate(), s.getGrossAmount(), s.getCurrencyCode(),
-                s.getStatus().name(), s.getRequestedAt(), s.getApprovedAt(), s.getPaidAt(), s.getRejectedAt(),
+                s.getStatus().name(), s.getRequestedAt(), s.getCustomerApprovedAt(), s.getCustomerRejectedAt(),
+                s.getCustomerComment(), s.getApprovedAt(), s.getPaidAt(), s.getRejectedAt(),
                 s.getAdminComment(), s.getPaymentReference());
     }
 }
