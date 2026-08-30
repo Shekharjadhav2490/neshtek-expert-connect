@@ -56,6 +56,18 @@ export interface Engagement {
   updatedAt: string;
 }
 
+export interface EngagementHistory {
+  id: number;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  actorUserId: number | null;
+  actorRole: string | null;
+  actorName: string | null;
+  reason: string | null;
+  occurredAt: string;
+}
+
 interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -99,6 +111,10 @@ export class ExpertService {
 
   getEngagement(id: number): Observable<Engagement> {
     return this.http.get<Engagement>(`${this.engagementUrl}/${id}`);
+  }
+
+  getEngagementHistory(id: number): Observable<EngagementHistory[]> {
+    return this.http.get<EngagementHistory[]>(`${this.engagementUrl}/${id}/history`);
   }
 
   startEngagement(id: number): Observable<Engagement> {
