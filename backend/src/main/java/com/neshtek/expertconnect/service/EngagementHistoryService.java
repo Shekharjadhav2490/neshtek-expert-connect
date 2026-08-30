@@ -5,6 +5,7 @@ import com.neshtek.expertconnect.entity.AppUser;
 import com.neshtek.expertconnect.entity.Engagement;
 import com.neshtek.expertconnect.entity.EngagementHistory;
 import com.neshtek.expertconnect.repository.EngagementHistoryRepository;
+import com.neshtek.expertconnect.repository.EngagementRepository;
 import com.neshtek.expertconnect.security.ResourceAuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,10 +15,14 @@ import java.util.List;
 @Service
 public class EngagementHistoryService {
     private final EngagementHistoryRepository repository;
+    private final EngagementRepository engagementRepository;
     private final ResourceAuthorizationService authorization;
 
-    public EngagementHistoryService(EngagementHistoryRepository repository, ResourceAuthorizationService authorization) {
+    public EngagementHistoryService(EngagementHistoryRepository repository,
+                                    EngagementRepository engagementRepository,
+                                    ResourceAuthorizationService authorization) {
         this.repository = repository;
+        this.engagementRepository = engagementRepository;
         this.authorization = authorization;
     }
 
@@ -38,8 +43,9 @@ public class EngagementHistoryService {
 
     @Transactional(readOnly = true)
     public List<EngagementHistoryResponse> list(Long engagementId) {
-        Engagement engagement = new Engagement();
-        // Authorization is performed against the real engagement by the controller/service caller.
+        Engagement engagement = engagementRepository.findWithDetailsById(engagementId)
+                .orElseThrow(() -> new IllegalArgumentException("Engagement not found: " + engagementId));
+        authorization.assertCanAccess(engagement);
         return repository.findByEngagementIdOrderByOccurredAtDesc(engagementId).stream()
                 .map(h -> new EngagementHistoryResponse(
                         h.getId(), h.getAction(), h.getFromStatus(), h.getToStatus(),
