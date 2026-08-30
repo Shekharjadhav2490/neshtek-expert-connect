@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'expert/settlement', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-settlement.component').then((m) => m.ExpertSettlementComponent) },
   { path: 'expert/consultations', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-consultation-inbox.component').then((m) => m.ExpertConsultationInboxComponent) },
   { path: 'expert/work-logs/:engagementId', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/expert-work-logs.component').then((m) => m.ExpertWorkLogsComponent) },
+  { path: 'expert/engagement-history/:engagementId', canActivate: [authGuard, roleGuard(['EXPERT', 'ROLE_EXPERT'])], loadComponent: () => import('./pages/engagement-history.component').then((m) => m.EngagementHistoryComponent) },
   { path: 'admin/dashboard', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-dashboard.component').then((m) => m.AdminDashboardComponent) },
   { path: 'admin/settlements', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-settlements.component').then((m) => m.AdminSettlementsComponent) },
   { path: 'admin/experts', canActivate: [authGuard, roleGuard(['ADMIN', 'ROLE_ADMIN'])], loadComponent: () => import('./pages/admin-experts.component').then((m) => m.AdminExpertsComponent) },
