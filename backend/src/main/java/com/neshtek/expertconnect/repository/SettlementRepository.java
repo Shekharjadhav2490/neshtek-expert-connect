@@ -14,11 +14,15 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     Page<Settlement> findByExpertIdOrderByCreatedAtDesc(Long expertId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"engagement", "engagement.customer", "engagement.expert", "engagement.requirement", "expert"})
+    Page<Settlement> findByEngagementCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"engagement", "engagement.customer", "engagement.expert", "engagement.requirement", "expert"})
     Page<Settlement> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @EntityGraph(attributePaths = {"engagement", "engagement.customer", "engagement.expert", "engagement.requirement", "expert"})
     Optional<Settlement> findWithDetailsById(Long id);
 
+    @EntityGraph(attributePaths = {"engagement", "engagement.customer", "engagement.expert", "engagement.requirement", "expert"})
     Optional<Settlement> findFirstByEngagementIdOrderByCreatedAtDesc(Long engagementId);
 
     boolean existsByEngagementIdAndStatusIn(Long engagementId, java.util.Collection<SettlementStatus> statuses);

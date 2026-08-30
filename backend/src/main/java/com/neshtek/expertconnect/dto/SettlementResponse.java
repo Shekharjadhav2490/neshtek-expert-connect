@@ -8,5 +8,6 @@ public record SettlementResponse(
         Long customerId, String companyName, String requirementTitle,
         BigDecimal approvedHours, BigDecimal hourlyRate, BigDecimal grossAmount,
         String currencyCode, String status, LocalDateTime requestedAt,
-        LocalDateTime approvedAt, LocalDateTime paidAt, LocalDateTime rejectedAt,
-        String adminComment, String paymentReference) {}
+        LocalDateTime customerApprovedAt, LocalDateTime customerRejectedAt,
+        String customerComment, LocalDateTime approvedAt, LocalDateTime paidAt,
+        LocalDateTime rejectedAt, String adminComment, String paymentReference) {}

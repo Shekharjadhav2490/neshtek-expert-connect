@@ -21,6 +21,17 @@ public class SettlementController {
         return service.byExpert(expertId, pageable);
     }
 
+    @GetMapping("/customers/{customerId}")
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
+    public Page<SettlementResponse> byCustomer(@PathVariable Long customerId, Pageable pageable) {
+        return service.byCustomer(customerId, pageable);
+    }
+
+    @GetMapping("/engagements/{engagementId}")
+    public SettlementResponse byEngagement(@PathVariable Long engagementId) {
+        return service.byEngagement(engagementId);
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Page<SettlementResponse> all(Pageable pageable) { return service.all(pageable); }
@@ -31,6 +42,18 @@ public class SettlementController {
     @PostMapping("/engagements/{engagementId}/request")
     @PreAuthorize("hasRole('EXPERT')")
     public SettlementResponse request(@PathVariable Long engagementId) { return service.request(engagementId); }
+
+    @PostMapping("/{id}/customer-approve")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public SettlementResponse customerApprove(@PathVariable Long id, @RequestParam(required=false) String comment) {
+        return service.customerApprove(id, comment);
+    }
+
+    @PostMapping("/{id}/customer-reject")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public SettlementResponse customerReject(@PathVariable Long id, @RequestParam String reason) {
+        return service.customerReject(id, reason);
+    }
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
