@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ExpertReplacementRequestRepository extends JpaRepository<ExpertReplacementRequest, Long> {
-    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","requestedBy","reviewedBy"})
+    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","newExpert","requestedBy","reviewedBy"})
     Optional<ExpertReplacementRequest> findWithDetailsById(Long id);
-    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","requestedBy","reviewedBy"})
+    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","newExpert","requestedBy","reviewedBy"})
     List<ExpertReplacementRequest> findByEngagementIdOrderByRequestedAtDesc(Long engagementId);
-    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","requestedBy","reviewedBy"})
+    @EntityGraph(attributePaths={"engagement","engagement.customer","engagement.expert","engagement.requirement","currentExpert","newExpert","requestedBy","reviewedBy"})
     List<ExpertReplacementRequest> findByStatusOrderByRequestedAtDesc(ExpertReplacementStatus status);
     boolean existsByEngagementIdAndStatus(Long engagementId, ExpertReplacementStatus status);
 }
