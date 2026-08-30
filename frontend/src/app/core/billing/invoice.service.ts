@@ -19,4 +19,5 @@ export class InvoiceService {
   generate(engagementId:number):Observable<Invoice>{return this.http.post<Invoice>(`${this.base}/engagements/${engagementId}/generate`,{});}
   issue(id:number):Observable<Invoice>{return this.http.post<Invoice>(`${this.base}/${id}/issue`,{});}
   cancel(id:number):Observable<Invoice>{return this.http.post<Invoice>(`${this.base}/${id}/cancel`,{});}
+  pdf(id:number):Observable<Blob>{return this.http.get(`${this.base}/${id}/pdf`,{responseType:'blob'});}
 }
