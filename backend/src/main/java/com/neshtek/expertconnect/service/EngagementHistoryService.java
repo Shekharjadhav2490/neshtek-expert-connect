@@ -58,7 +58,7 @@ public class EngagementHistoryService {
             return user.getExpert().getFirstName() + " " + user.getExpert().getLastName();
         }
         if (user.getCustomer() != null) {
-            return user.getCustomer().getFirstName() + " " + user.getCustomer().getLastName();
+            return user.getCustomer().getContactName();
         }
         return user.getEmail();
     }
